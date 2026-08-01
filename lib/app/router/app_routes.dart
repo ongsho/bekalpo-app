@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/post_preview/presentation/screens/post_preview_screen.dart';
+import '../../features/search/presentation/screens/search_screen.dart';
+import '../../features/search/presentation/screens/search_results_screen.dart';
 
 class AppRoutes {
   static const String home = "/";
@@ -25,6 +27,27 @@ class AppRoutes {
           );
         }
         return MaterialPageRoute(builder: (_) => PostPreviewScreen(slug: slug));
+
+      case search:
+        return MaterialPageRoute(builder: (_) => const SearchScreen());
+
+      case searchResults:
+        final query = settings.arguments as String?;
+        return MaterialPageRoute(
+          builder: (_) => SearchResultsScreen(query: query ?? ''),
+        );
+
+      // case categoryHierarchy:
+      //   final category =
+      //       settings.arguments; // adjust type to your Category model
+      //   return MaterialPageRoute(
+      //     builder: (_) => CategoryHierarchyScreen(category: category),
+      //   );
+
+      // case locationHierarchy:
+      //   return MaterialPageRoute(
+      //     builder: (_) => const LocationHierarchyScreen(),
+      //   );
 
       default:
         return MaterialPageRoute(

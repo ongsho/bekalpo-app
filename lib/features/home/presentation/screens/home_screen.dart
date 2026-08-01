@@ -217,7 +217,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(
               child: CategoryGrid(
                 categories: categories,
-                onTap: _onCategoryTap,
+                // onTap: _onCategoryTap,
               ),
             ),
           ),

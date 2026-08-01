@@ -34,46 +34,46 @@ class HomeSearchBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ── Location chip — fixed width ───────────────────────────
-          SizedBox(
-            width: 100,
-            child: InkWell(
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(10),
-              ),
-              onTap: onLocationTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      size: 15,
-                      color: AppColors.brand500,
-                    ),
-                    const SizedBox(width: 3),
-                    Expanded(
-                      child: Text(
-                        location,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 14,
-                      color: Colors.black45,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          // SizedBox(
+          //   width: 100,
+          //   child: InkWell(
+          //     borderRadius: const BorderRadius.horizontal(
+          //       left: Radius.circular(10),
+          //     ),
+          //     onTap: onLocationTap,
+          //     child: Padding(
+          //       padding: const EdgeInsets.symmetric(horizontal: 10),
+          //       child: Row(
+          //         mainAxisAlignment: MainAxisAlignment.center,
+          //         children: [
+          //           const Icon(
+          //             Icons.location_on_rounded,
+          //             size: 15,
+          //             color: AppColors.brand500,
+          //           ),
+          //           const SizedBox(width: 3),
+          //           Expanded(
+          //             child: Text(
+          //               location,
+          //               maxLines: 1,
+          //               overflow: TextOverflow.ellipsis,
+          //               style: const TextStyle(
+          //                 fontSize: 12.5,
+          //                 fontWeight: FontWeight.w600,
+          //                 color: Colors.black87,
+          //               ),
+          //             ),
+          //           ),
+          //           const Icon(
+          //             Icons.keyboard_arrow_down_rounded,
+          //             size: 14,
+          //             color: Colors.black45,
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // ── Divider ───────────────────────────────────────────────
           Container(height: 22, width: 1, color: AppColors.surfaceBorder),

@@ -14,6 +14,7 @@ import '../../../../core/providers/category_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../features/shared/presentation/widgets/theme_selector_sheet.dart';
+import '../../../../features/bottom_nav/presentation/providers/nav_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -67,7 +68,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _onSearchTap() {
-    Navigator.pushNamed(context, AppRoutes.search);
+    ref.read(navIndexProvider.notifier).state = 1;
   }
 
   // FIX #3: pass the tapped category as arguments, and update local location

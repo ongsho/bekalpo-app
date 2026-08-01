@@ -241,7 +241,7 @@ class PostRepository {
       );
 
       return ResponseParser.parseList(
-        response.data['data'],
+        response.data,
         (json) => Post.fromJson(json),
       );
     } on ApiException {

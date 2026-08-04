@@ -2,6 +2,7 @@ import 'package:bekalpo/features/bottom_nav/presentation/providers/nav_provider.
 import 'package:bekalpo/features/bottom_nav/presentation/widgets/bottom_nav_bar.dart';
 import 'package:bekalpo/features/home/presentation/screens/home_screen.dart';
 import 'package:bekalpo/features/search/presentation/screens/search_screen.dart';
+import 'package:bekalpo/features/profile/presentation/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,7 +19,7 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
     const SearchScreen(),
     const _PlaceholderScreen(title: 'Post Ad'),
     const _PlaceholderScreen(title: 'Messages'),
-    const _PlaceholderScreen(title: 'Profile'),
+    const ProfileScreen(),
   ];
 
   @override

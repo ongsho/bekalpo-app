@@ -6,6 +6,7 @@ import '../../../../core/models/search_suggestion.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../bottom_nav/presentation/providers/nav_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -26,9 +27,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
-    });
   }
 
   @override
@@ -111,6 +109,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final statusBarHeight = MediaQuery.of(context).padding.top;
+    final currentIndex = ref.watch(navIndexProvider);
+
+    // Request focus when search tab becomes active
+    if (currentIndex == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNode.requestFocus();
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -126,7 +132,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 IconButton(
                   icon: const Icon(Icons.arrow_back, size: 22),
                   color: Colors.white,
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () =>
+                      ref.read(navIndexProvider.notifier).state = 0,
                 ),
                 const SizedBox(width: 4),
 

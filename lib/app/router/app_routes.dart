@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../features/bottom_nav/presentation/screens/main_nav_screen.dart';
 import '../../features/post_preview/presentation/screens/post_preview_screen.dart';
 import '../../features/search/presentation/screens/search_results_screen.dart';
+import '../../features/search/presentation/screens/search_screen.dart';
 
 class AppRoutes {
   static const String home = "/";
@@ -26,6 +27,9 @@ class AppRoutes {
           );
         }
         return MaterialPageRoute(builder: (_) => PostPreviewScreen(slug: slug));
+
+      case search:
+        return MaterialPageRoute(builder: (_) => const SearchScreen());
 
       case searchResults:
         final query = settings.arguments as String?;

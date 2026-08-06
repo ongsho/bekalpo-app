@@ -6,6 +6,7 @@ import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
+import 'search_screen.dart';
 
 class SearchResultsScreen extends ConsumerStatefulWidget {
   final String query;
@@ -61,10 +62,28 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(searchProvider(_filters));
 
-    return Scaffold(
-      appBar: AppBar(title: Text('Results for "${widget.query}"')),
-      body: _buildBody(state),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handleBack();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleBack,
+          ),
+          title: Text('Results for "${widget.query}"'),
+        ),
+        body: _buildBody(state),
+      ),
     );
+  }
+
+  void _handleBack() {
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   Widget _buildBody(SearchState state) {

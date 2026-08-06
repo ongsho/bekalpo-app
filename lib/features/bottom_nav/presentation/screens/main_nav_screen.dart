@@ -26,10 +26,55 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
   Widget build(BuildContext context) {
     final currentIndex = ref.watch(navIndexProvider);
 
-    return Scaffold(
-      body: IndexedStack(index: currentIndex, children: _screens),
-      bottomNavigationBar: const BottomNavBar(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (!didPop) {
+          // Only handle back button for main navigation, not for sub-screens
+          // Check if we're on a main tab (not in a sub-screen like search results)
+          if (Navigator.of(context).canPop()) {
+            // Let the normal navigation handle it (for sub-screens)
+            return;
+          }
+
+          // Handle main navigation back button
+          if (currentIndex == 0) {
+            // On home tab - show exit confirmation
+            _showExitConfirmation(context);
+          } else {
+            // On other tabs - go to home tab
+            ref.read(navIndexProvider.notifier).state = 0;
+          }
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(index: currentIndex, children: _screens),
+        bottomNavigationBar: const BottomNavBar(),
+      ),
     );
+  }
+
+  Future<void> _showExitConfirmation(BuildContext context) async {
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Exit App'),
+        content: const Text('Do you want to exit the app?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+    if (shouldExit == true && context.mounted) {
+      // Handle app exit
+    }
   }
 }
 

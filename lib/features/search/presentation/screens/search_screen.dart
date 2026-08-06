@@ -81,6 +81,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _submitSearch(String query) {
     if (query.trim().isEmpty) return;
     _debounce?.cancel();
+    _focusNode.unfocus(); // Close keyboard before navigation
     Navigator.pushReplacementNamed(
       context,
       AppRoutes.searchResults,
@@ -90,6 +91,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onSuggestionTap(SearchSuggestion suggestion) {
     _debounce?.cancel();
+    _focusNode.unfocus(); // Close keyboard before navigation
 
     if (suggestion.type == 'product' && suggestion.slug != null) {
       Navigator.pushReplacementNamed(

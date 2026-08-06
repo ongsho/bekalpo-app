@@ -6,7 +6,6 @@ import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
-import 'search_screen.dart';
 
 class SearchResultsScreen extends ConsumerStatefulWidget {
   final String query;

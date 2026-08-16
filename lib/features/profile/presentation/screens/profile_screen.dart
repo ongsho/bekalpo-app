@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/providers/auth_provider.dart';
+import '../../../auth/presentation/screens/auth_entry_screen.dart';
 
 class AppColors {
   static const bgOuter = Color(0xFFEAF2EC);
@@ -26,17 +30,31 @@ class ProfileMenuItem {
   });
 }
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const _LoggedInProfile();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+
+    // Show loading indicator while checking auth state
+    if (authState.isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.cardBg,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (authState.isLoggedIn) {
+      return const _LoggedInProfile();
+    } else {
+      return const _GuestProfile();
+    }
   }
 }
 
-class _LoggedInProfile extends StatelessWidget {
-  const _LoggedInProfile();
+class _GuestProfile extends StatelessWidget {
+  const _GuestProfile();
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +68,169 @@ class _LoggedInProfile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _TopBar(),
+                  _TopBar(title: "Guest"),
                   const SizedBox(height: 20),
-                  const _ProfileHeader(),
+                  _ProfileHeader(
+                    isLoggedIn: false,
+                    userName: null,
+                    userEmail: null,
+                    avatar: null,
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _MenuSection(
+                      items: [
+                        ProfileMenuItem(
+                          icon: Icons.account_circle_outlined,
+                          label: "My Account",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.post_add,
+                          label: "My Post",
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                    const Divider(color: AppColors.dividerColor, height: 32),
+                    _MenuSection(
+                      items: [
+                        ProfileMenuItem(
+                          icon: Icons.location_on_outlined,
+                          label: "Address",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.security_outlined,
+                          label: "Security",
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                    const Divider(color: AppColors.dividerColor, height: 32),
+                    const _SectionTitle(title: "Support & Help"),
+                    const SizedBox(height: 8),
+                    _MenuSection(
+                      items: [
+                        ProfileMenuItem(
+                          icon: Icons.contact_mail_outlined,
+                          label: "Contact Us",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.info_outline,
+                          label: "About Us",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.security,
+                          label: "Safety Tips",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.groups_outlined,
+                          label: "Community Guidelines",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.help_outline,
+                          label: "FAQ's",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.article_outlined,
+                          label: "Our Blog",
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                    const Divider(color: AppColors.dividerColor, height: 32),
+                    const _SectionTitle(title: "Legal Info"),
+                    const SizedBox(height: 8),
+                    _MenuSection(
+                      items: [
+                        ProfileMenuItem(
+                          icon: Icons.privacy_tip_outlined,
+                          label: "Privacy Policy",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.description_outlined,
+                          label: "Terms of Services",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.currency_exchange,
+                          label: "Refund Policy",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.cookie_outlined,
+                          label: "Cookie Policy",
+                          onTap: () {},
+                        ),
+                        ProfileMenuItem(
+                          icon: Icons.warning_amber_outlined,
+                          label: "Disclaimer",
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Center(
+                      child: Text(
+                        "App version 003",
+                        style: TextStyle(
+                          color: AppColors.textGray,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoggedInProfile extends ConsumerWidget {
+  const _LoggedInProfile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+
+    return Scaffold(
+      backgroundColor: AppColors.cardBg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _TopBar(title: "My Profile"),
+                  const SizedBox(height: 20),
+                  _ProfileHeader(
+                    isLoggedIn: authState.isLoggedIn,
+                    userName: authState.userName,
+                    userEmail: authState.userEmail,
+                    avatar: authState.avatar,
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -168,7 +346,7 @@ class _LoggedInProfile extends StatelessWidget {
                           icon: Icons.logout,
                           label: "Log Out",
                           destructive: true,
-                          onTap: () => _showLogoutDialog(context),
+                          onTap: () => _showLogoutDialog(context, ref),
                         ),
                       ],
                     ),
@@ -193,7 +371,7 @@ class _LoggedInProfile extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -205,7 +383,14 @@ class _LoggedInProfile extends StatelessWidget {
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () async {
+              // Update auth state (will clear token automatically)
+              await ref.read(authProvider.notifier).logout();
+
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
+            },
             child: const Text(
               "Log Out",
               style: TextStyle(color: AppColors.red),
@@ -218,6 +403,9 @@ class _LoggedInProfile extends StatelessWidget {
 }
 
 class _TopBar extends StatelessWidget {
+  final String title;
+  const _TopBar({required this.title});
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -235,9 +423,9 @@ class _TopBar extends StatelessWidget {
             ),
           ),
         ),
-        const Text(
-          "My Profile",
-          style: TextStyle(
+        Text(
+          title,
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: AppColors.textDark,
@@ -261,7 +449,17 @@ class _TopBar extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+  final bool isLoggedIn;
+  final String? userName;
+  final String? userEmail;
+  final String? avatar;
+
+  const _ProfileHeader({
+    required this.isLoggedIn,
+    this.userName,
+    this.userEmail,
+    this.avatar,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +469,12 @@ class _ProfileHeader extends StatelessWidget {
         CircleAvatar(
           radius: 40,
           backgroundColor: Colors.grey.shade200,
-          child: Icon(Icons.person_outline, size: 40, color: Colors.grey[600]),
+          backgroundImage: isLoggedIn && avatar != null
+              ? CachedNetworkImageProvider(avatar!)
+              : null,
+          child: (!isLoggedIn || avatar == null)
+              ? Icon(Icons.person_outline, size: 40, color: Colors.grey[600])
+              : null,
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -279,21 +482,29 @@ class _ProfileHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Guest User",
-                style: TextStyle(
+              Text(
+                isLoggedIn ? (userName ?? "User") : "Guest User",
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textDark,
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
-                "Browse as guest",
-                style: TextStyle(fontSize: 13, color: AppColors.textGray),
+              Text(
+                isLoggedIn ? (userEmail ?? "") : "Browse as guest",
+                style: const TextStyle(fontSize: 13, color: AppColors.textGray),
               ),
               const SizedBox(height: 10),
-              _LoginButton(onTap: () {}),
+              if (!isLoggedIn)
+                _LoginButton(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AuthEntryScreen(),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

@@ -5,6 +5,7 @@ import '../../../../core/models/post.dart';
 import '../../../../core/network/exceptions/api_exception.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
+import '../../../shared/presentation/widgets/connectivity_wrapper.dart';
 import '../widgets/post_gallery.dart';
 import '../widgets/post_price_card.dart';
 import '../widgets/post_safety_tips.dart';
@@ -55,10 +56,12 @@ class PostPreviewScreen extends ConsumerWidget {
           const SizedBox(width: 4),
         ],
       ),
-      body: postAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildError(context, ref, error),
-        data: (post) => _buildContent(context, ref, post),
+      body: ConnectivityWrapper(
+        child: postAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => _buildError(context, ref, error),
+          data: (post) => _buildContent(context, ref, post),
+        ),
       ),
     );
   }

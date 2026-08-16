@@ -3,6 +3,7 @@ import 'package:bekalpo/features/bottom_nav/presentation/widgets/bottom_nav_bar.
 import 'package:bekalpo/features/home/presentation/screens/home_screen.dart';
 import 'package:bekalpo/features/search/presentation/screens/search_screen.dart';
 import 'package:bekalpo/features/profile/presentation/screens/profile_screen.dart';
+import 'package:bekalpo/features/shared/presentation/widgets/connectivity_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,7 +49,9 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
         }
       },
       child: Scaffold(
-        body: IndexedStack(index: currentIndex, children: _screens),
+        body: ConnectivityWrapper(
+          child: IndexedStack(index: currentIndex, children: _screens),
+        ),
         bottomNavigationBar: const BottomNavBar(),
       ),
     );

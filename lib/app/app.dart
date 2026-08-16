@@ -2,7 +2,6 @@
 import 'package:bekalpo/core/theme/app_theme.dart';
 import 'package:bekalpo/core/providers/theme_provider.dart';
 import 'package:bekalpo/features/bottom_nav/presentation/screens/main_nav_screen.dart';
-import 'package:bekalpo/features/shared/presentation/widgets/connectivity_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_routes.dart';
@@ -28,9 +27,6 @@ class App extends ConsumerWidget {
       themeMode: themeMode,
       home: const MainNavScreen(),
       onGenerateRoute: AppRoutes.generateRoute,
-      builder: (context, child) {
-        return ConnectivityWrapper(child: child ?? const SizedBox.shrink());
-      },
     );
   }
 }

@@ -15,25 +15,25 @@ class AppColors {
   static const Color brand900 = Color(0xFF04284D);
   static const Color brand950 = Color(0xFF021629);
 
-  static const MaterialColor primarySwatch = MaterialColor(
-    0xFF0A66C2,
-    <int, Color>{
-      50: brand50,
-      100: brand100,
-      200: brand200,
-      300: brand300,
-      400: brand400,
-      500: brand500,
-      600: brand600,
-      700: brand700,
-      800: brand800,
-      900: brand900,
-    },
-  );
+  static const MaterialColor primarySwatch =
+      MaterialColor(0xFF0A66C2, <int, Color>{
+        50: brand50,
+        100: brand100,
+        200: brand200,
+        300: brand300,
+        400: brand400,
+        500: brand500,
+        600: brand600,
+        700: brand700,
+        800: brand800,
+        900: brand900,
+      });
 
   // Neutral / Surface Colors
   static const Color surfaceBg = Color(0xFFF5F6FA); // page background
   static const Color surfaceBorder = Color(0xFFE7E9EE); // card / divider border
+  static const Color textDark = Color(0xFF1A1A1A); // primary text color
+  static const Color textGray = Color(0xFF8A8A8A); // secondary text color
 
   // Semantic Colors
   static const Color success500 = Color(0xFF16A34A); // green — verified, safety

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../network/exceptions/api_exception.dart';
 
 /// Production-grade HTTP client using Dio with interceptors
@@ -10,6 +11,7 @@ class ApiClient {
   static const Duration _connectTimeout = Duration(seconds: 30);
   static const Duration _receiveTimeout = Duration(seconds: 30);
   static const Duration _sendTimeout = Duration(seconds: 30);
+  static const String _tokenKey = 'auth_token';
 
   ApiClient._internal() {
     _dio = Dio(_createBaseOptions());
@@ -40,9 +42,9 @@ class ApiClient {
     // Request interceptor: Add auth token, logging
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (options, handler) async {
           // Add authentication token if available
-          final token = _getAuthToken();
+          final token = await _getAuthToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -206,20 +208,30 @@ class ApiClient {
   }
 
   /// Get stored auth token (implement with secure storage in production)
-  String? _getAuthToken() {
-    // TODO: Implement with secure storage (flutter_secure_storage)
-    // For now, return null or implement simple storage
-    return null;
+  Future<String?> _getAuthToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      print(
+        'API Client: Token read from SharedPreferences: ${token != null ? "Found" : "Not found"}',
+      );
+      return token;
+    } catch (e) {
+      print('API Client: Error reading token: $e');
+      return null;
+    }
   }
 
   /// Set auth token (implement with secure storage in production)
   Future<void> setAuthToken(String? token) async {
-    // TODO: Implement with secure storage (flutter_secure_storage)
+    // This method is now handled by AuthNotifier
+    // Kept for compatibility if needed elsewhere
   }
 
   /// Clear auth token
   Future<void> clearAuthToken() async {
-    // TODO: Implement with secure storage (flutter_secure_storage)
+    // This method is now handled by AuthNotifier
+    // Kept for compatibility if needed elsewhere
   }
 
   /// Log request details

@@ -6,6 +6,7 @@ import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../shared/presentation/widgets/connectivity_wrapper.dart';
 
 class SearchResultsScreen extends ConsumerStatefulWidget {
   final String query;
@@ -76,7 +77,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           ),
           title: Text('Results for "${widget.query}"'),
         ),
-        body: _buildBody(state),
+        body: ConnectivityWrapper(child: _buildBody(state)),
       ),
     );
   }

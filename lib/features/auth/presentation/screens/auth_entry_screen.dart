@@ -8,6 +8,8 @@ import '../../domain/entities/auth_mode.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'email_signin_screen.dart';
 import 'set_password_screen.dart';
+import 'phone_signup_screen.dart';
+import 'phone_signin_screen.dart';
 
 class AuthEntryScreen extends ConsumerStatefulWidget {
   const AuthEntryScreen({super.key});
@@ -219,17 +221,17 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   }
 
   void _navigateToPhoneSignup({required String phone}) {
-    // TODO: Implement navigation to phone signup screen
-    ScaffoldMessenger.of(
+    Navigator.push(
       context,
-    ).showSnackBar(SnackBar(content: Text('Navigate to phone signup: $phone')));
+      MaterialPageRoute(builder: (context) => PhoneSignupScreen(phone: phone)),
+    );
   }
 
   void _navigateToPhoneSignin({required String phone}) {
-    // TODO: Implement navigation to phone signin screen
-    ScaffoldMessenger.of(
+    Navigator.push(
       context,
-    ).showSnackBar(SnackBar(content: Text('Navigate to phone signin: $phone')));
+      MaterialPageRoute(builder: (context) => PhoneSigninScreen(phone: phone)),
+    );
   }
 
   void _navigateToSetPassword({required String email}) {

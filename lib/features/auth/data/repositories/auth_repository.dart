@@ -114,4 +114,46 @@ class AuthRepositoryImpl implements AuthRepository {
       throw Exception('Failed to sign in with phone: $e');
     }
   }
+
+  @override
+  Future<AuthResponse> signupWithPhone(
+    String name,
+    String phone,
+    String password,
+  ) async {
+    try {
+      final response = await ApiService.post(
+        'auth/signup/phone',
+        data: {'name': name, 'phone': phone, 'password': password},
+      );
+      final authResponse = AuthResponse.fromJson(response);
+
+      if (!authResponse.status && authResponse.errors != null) {
+        throw _extractErrorMessage(authResponse.errors);
+      }
+
+      return authResponse;
+    } catch (e) {
+      throw Exception('Failed to signup with phone: $e');
+    }
+  }
+
+  @override
+  Future<SigninResponse> verifyPhone(String phone, String otp) async {
+    try {
+      final response = await ApiService.post(
+        'auth/verify/phone',
+        data: {'phone': phone, 'otp': otp},
+      );
+      final signinResponse = SigninResponse.fromJson(response);
+
+      if (!signinResponse.isSuccess) {
+        throw Exception('Verification failed');
+      }
+
+      return signinResponse;
+    } catch (e) {
+      throw Exception('Failed to verify phone: $e');
+    }
+  }
 }

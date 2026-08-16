@@ -77,7 +77,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void login({
     required String userName,
-    required String userEmail,
+    String? userEmail,
     String? token,
     String? avatar,
   }) async {
@@ -91,7 +91,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         print('AuthNotifier: Token saved to SharedPreferences');
       }
       await prefs.setString('user_name', userName);
-      await prefs.setString('user_email', userEmail);
+      if (userEmail != null) {
+        await prefs.setString('user_email', userEmail);
+      }
       if (avatar != null) {
         await prefs.setString('user_avatar', avatar);
         print('AuthNotifier: Avatar saved to SharedPreferences');

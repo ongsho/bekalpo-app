@@ -6,6 +6,7 @@ import 'package:bekalpo/features/profile/presentation/screens/profile_screen.dar
 import 'package:bekalpo/features/shared/presentation/widgets/connectivity_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 class MainNavScreen extends ConsumerStatefulWidget {
   const MainNavScreen({super.key});
@@ -77,6 +78,7 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
     );
     if (shouldExit == true && context.mounted) {
       // Handle app exit
+      SystemNavigator.pop();
     }
   }
 }

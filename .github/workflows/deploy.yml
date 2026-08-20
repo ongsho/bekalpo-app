@@ -41,5 +41,6 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.bekalpo.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          tracks: internal          # প্রথমে এটা দিয়ে শুরু করুন — নিচে নোট দেখুন
+          tracks: production          # প্রথমে এটা দিয়ে শুরু করুন — নিচে নোট দেখুন
           status: completed
+          whatsNewDirectory: distribution/whatsnew

@@ -1,0 +1,45 @@
+name: Deploy to Play Store
+
+on:
+  push:
+    branches: [main]   # অথবা আলাদা release branch যেটা আপনি নিয়ন্ত্রণ করেন
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.9'
+          channel: 'stable'
+
+      - name: Decode keystore
+        run: |
+          mkdir -p android/app/key
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/key/bekalpo-keystore.jks
+
+      - name: Create key.properties
+        run: |
+          cat <<EOF > android/key.properties
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=key/bekalpo-keystore.jks
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build appbundle
+        run: flutter build appbundle --release
+
+      - name: Upload to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.bekalpo.app
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: internal          # প্রথমে এটা দিয়ে শুরু করুন — নিচে নোট দেখুন
+          status: completed

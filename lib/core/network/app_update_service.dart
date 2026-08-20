@@ -71,12 +71,10 @@ class AppUpdateService {
         if (updateInfo.immediateUpdateAllowed) {
           debugPrint('AppUpdateService: Starting immediate update flow');
           await _startImmediateUpdate();
-        } else {
-          // Flexible update - return info for UI to handle
-          debugPrint(
-            'AppUpdateService: Flexible update available, returning info to UI',
-          );
-          return updateInfo;
+        } else if (updateInfo.flexibleUpdateAllowed) {
+          // Flexible update - start it automatically, Google Play will handle UI
+          debugPrint('AppUpdateService: Starting flexible update flow');
+          await startFlexibleUpdate();
         }
       } else {
         debugPrint('AppUpdateService: No update available');

@@ -50,7 +50,9 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
     // Check for updates on app start
     // Immediate updates will start automatically
     // Flexible updates will return update info for UI handling
-    // DEV-ONLY: Uncomment below lines to enable mock mode for testing
+    // DEV-ONLY: Uncomment below lines to enable mock mode for UI testing
+    // Note: Mock mode only shows custom dialog, not actual Google Play UI
+    // For actual Google Play In-App Update testing, app must be installed from Play Store
     // if (kDebugMode) {
     //   AppUpdateService().enableMockMode();
     //   AppUpdateService().setMockScenario('flexible_update');
@@ -66,55 +68,12 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
 
     final updateInfo = await AppUpdateService().checkForUpdate();
 
-    // Production path: real flexible update available
-    if (updateInfo != null && mounted) {
+    // For flexible updates, Google Play handles the UI automatically
+    // For immediate updates, Google Play also handles the UI automatically
+    // We don't need to show any custom dialog - let Google Play handle everything
+    // This code just ensures we only check once per session
+    if (updateInfo != null) {
       _hasShownUpdateDialog = true;
-      _showUpdateDialog();
-    }
-
-    // DEV-ONLY: Mock mode testing hook for flexible update dialog
-    // This allows testing the dialog UI without Play Store deployment
-    // Has no effect when mock mode is disabled
-    final updateService = AppUpdateService();
-    if (updateService.isMockFlexibleUpdateAvailable && mounted) {
-      _hasShownUpdateDialog = true;
-      _showUpdateDialog();
-    }
-  }
-
-  void _showUpdateDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Available'),
-        content: const Text(
-          'A new version of the app is available. Would you like to update now?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Later'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _startFlexibleUpdate();
-            },
-            child: const Text('Update Now'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _startFlexibleUpdate() async {
-    await AppUpdateService().startFlexibleUpdate();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Update downloaded! Restart to apply.')),
-      );
     }
   }
 

@@ -22,6 +22,11 @@ class AppUpdateService {
   /// For flexible updates: provides update info for UI to handle
   Future<AppUpdateInfo?> checkForUpdate() async {
     if (!Platform.isAndroid || _hasCheckedForUpdate || _isUpdateInProgress) {
+      if (kDebugMode) {
+        debugPrint(
+          'AppUpdateService: Check skipped - Platform.isAndroid=${Platform.isAndroid}, _hasCheckedForUpdate=$_hasCheckedForUpdate, _isUpdateInProgress=$_isUpdateInProgress',
+        );
+      }
       return null;
     }
 
@@ -29,38 +34,58 @@ class AppUpdateService {
 
     try {
       if (_mockMode) {
+        debugPrint('AppUpdateService: Mock mode enabled');
         // Handle mock scenarios
         if (_mockUpdateInfo == null) {
           // No update scenario
+          debugPrint('AppUpdateService: Mock - No update available');
           return null;
         } else if (_mockUpdateInfo == true) {
           // Immediate update scenario
+          debugPrint('AppUpdateService: Mock - Immediate update available');
           await _startImmediateUpdate();
           return null;
         } else if (_mockUpdateInfo == 'flexible') {
           // Flexible update scenario - return mock info
           // Since we can't create a real AppUpdateInfo, we'll return null
           // and let the UI handle it via other means
-          debugPrint('Mock: Flexible update available');
+          debugPrint('AppUpdateService: Mock - Flexible update available');
           return null;
         }
       }
 
+      debugPrint('AppUpdateService: Calling InAppUpdate.checkForUpdate()...');
       final AppUpdateInfo updateInfo = await InAppUpdate.checkForUpdate();
+
+      debugPrint(
+        'AppUpdateService: Update availability = ${updateInfo.updateAvailability}',
+      );
+      debugPrint(
+        'AppUpdateService: Immediate update allowed = ${updateInfo.immediateUpdateAllowed}',
+      );
+      debugPrint(
+        'AppUpdateService: Flexible update allowed = ${updateInfo.flexibleUpdateAllowed}',
+      );
 
       if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
         if (updateInfo.immediateUpdateAllowed) {
+          debugPrint('AppUpdateService: Starting immediate update flow');
           await _startImmediateUpdate();
         } else {
           // Flexible update - return info for UI to handle
+          debugPrint(
+            'AppUpdateService: Flexible update available, returning info to UI',
+          );
           return updateInfo;
         }
+      } else {
+        debugPrint('AppUpdateService: No update available');
       }
 
       return null;
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('In-app update check failed: $e');
+        debugPrint('AppUpdateService: In-app update check failed: $e');
       }
       return null;
     }
@@ -113,6 +138,11 @@ class AppUpdateService {
 
   /// Check if an update is currently in progress
   bool get isUpdateInProgress => _isUpdateInProgress;
+
+  /// Check if mock flexible update is available (dev-only testing hook)
+  /// Returns true only when mock mode is enabled and scenario is 'flexible_update'
+  bool get isMockFlexibleUpdateAvailable =>
+      _mockMode && _mockUpdateInfo == 'flexible';
 
   /// Reset the checked state (useful for testing or manual refresh)
   void resetCheckState() {

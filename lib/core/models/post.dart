@@ -74,7 +74,7 @@ class Post {
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
-    List<String>? _parseImages(dynamic value) {
+    List<String>? parseImages(dynamic value) {
       if (value == null) return null;
       if (value is List) {
         return value.map((e) => e.toString()).toList();
@@ -89,7 +89,7 @@ class Post {
       title: json['title'] as String?,
       slug: json['slug'] as String?,
       description: json['description'] as String?,
-      images: _parseImages(json['image']),
+      images: parseImages(json['image']),
       fields: json['fields'],
       categoryId: json['category_id'] as int?,
       brandId: json['brand_id'] as int?,

@@ -5,6 +5,7 @@ class AuthState {
   final bool isLoggedIn;
   final String? userName;
   final String? userEmail;
+  final String? userPhone;
   final String? token;
   final String? avatar;
   final bool isLoading;
@@ -13,6 +14,7 @@ class AuthState {
     required this.isLoggedIn,
     this.userName,
     this.userEmail,
+    this.userPhone,
     this.token,
     this.avatar,
     this.isLoading = false,
@@ -22,6 +24,7 @@ class AuthState {
     bool? isLoggedIn,
     String? userName,
     String? userEmail,
+    String? userPhone,
     String? token,
     String? avatar,
     bool? isLoading,
@@ -30,6 +33,7 @@ class AuthState {
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
+      userPhone: userPhone ?? this.userPhone,
       token: token ?? this.token,
       avatar: avatar ?? this.avatar,
       isLoading: isLoading ?? this.isLoading,
@@ -49,18 +53,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = prefs.getString('auth_token');
       final userName = prefs.getString('user_name');
       final userEmail = prefs.getString('user_email');
+      final userPhone = prefs.getString('user_phone');
       final avatar = prefs.getString('user_avatar');
 
       print('AuthNotifier: Token exists: ${token != null}');
       print('AuthNotifier: User name: $userName');
       print('AuthNotifier: User email: $userEmail');
+      print('AuthNotifier: User phone: $userPhone');
 
-      if (token != null && userName != null && userEmail != null) {
+      if (token != null && userName != null) {
         print('AuthNotifier: Restoring auth state');
         state = AuthState(
           isLoggedIn: true,
           userName: userName,
           userEmail: userEmail,
+          userPhone: userPhone,
           token: token,
           avatar: avatar,
           isLoading: false,
@@ -78,6 +85,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void login({
     required String userName,
     String? userEmail,
+    String? userPhone,
     String? token,
     String? avatar,
   }) async {
@@ -94,6 +102,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (userEmail != null) {
         await prefs.setString('user_email', userEmail);
       }
+      if (userPhone != null) {
+        await prefs.setString('user_phone', userPhone);
+        print('AuthNotifier: Phone saved to SharedPreferences');
+      }
       if (avatar != null) {
         await prefs.setString('user_avatar', avatar);
         print('AuthNotifier: Avatar saved to SharedPreferences');
@@ -107,6 +119,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isLoggedIn: true,
       userName: userName,
       userEmail: userEmail,
+      userPhone: userPhone,
       token: token,
       avatar: avatar,
     );
@@ -123,6 +136,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await prefs.remove('auth_token');
       await prefs.remove('user_name');
       await prefs.remove('user_email');
+      await prefs.remove('user_phone');
       await prefs.remove('user_avatar');
       print('AuthNotifier: All auth data cleared from SharedPreferences');
     } catch (e) {
@@ -133,6 +147,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isLoggedIn: false,
       userName: null,
       userEmail: null,
+      userPhone: null,
       token: null,
       avatar: null,
     );

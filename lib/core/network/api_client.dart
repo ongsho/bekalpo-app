@@ -211,7 +211,7 @@ class ApiClient {
   Future<String?> _getAuthToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = prefs.getString(_tokenKey);
       print(
         'API Client: Token read from SharedPreferences: ${token != null ? "Found" : "Not found"}',
       );
@@ -250,6 +250,7 @@ class ApiClient {
     print(
       'API Response: ${response.statusCode} ${response.requestOptions.uri}',
     );
+    print('Response Data: ${response.data}');
   }
 
   /// Log error details

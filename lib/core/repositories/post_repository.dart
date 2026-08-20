@@ -24,7 +24,7 @@ class PostRepository {
 
       return ResponseParser.parseList<Post>(
         response.data,
-        (json) => Post.fromJson(json as Map<String, dynamic>),
+        (json) => Post.fromJson(json),
       );
     } on ApiException {
       rethrow;

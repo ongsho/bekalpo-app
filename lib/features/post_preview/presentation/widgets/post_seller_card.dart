@@ -33,7 +33,7 @@ class _PostSellerCardState extends State<PostSellerCard> {
 
     return Container(
       width: double.infinity,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,10 +61,10 @@ class _PostSellerCardState extends State<PostSellerCard> {
                     children: [
                       Text(
                         (user.name ?? 'Unknown').toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                          color: Theme.of(context).colorScheme.onSurface,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -73,18 +73,28 @@ class _PostSellerCardState extends State<PostSellerCard> {
                         'Member since ${_formatMemberSince(user.createdAt)}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade500,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.5),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.4),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          Container(height: 1, color: Colors.grey.shade100),
+          Container(
+            height: 1,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+          ),
           const SizedBox(height: 14),
 
           if (user.contacts != null && user.contacts!.isNotEmpty ||
@@ -254,9 +264,13 @@ class _SellerActionRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: AppColors.surfaceBg,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1A1D27)
+              : AppColors.surfaceBg,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.surfaceBorder),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+          ),
         ),
         child: Row(
           children: [
@@ -272,17 +286,19 @@ class _SellerActionRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: Colors.grey.shade500,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.5),
                     ),
                   ),
                 ],

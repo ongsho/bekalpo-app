@@ -13,12 +13,14 @@ class PostSpecification extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _buildRows();
+    final rows = _buildRows(context);
 
     if (rows.isEmpty) {
       return Text(
         'No specifications available',
-        style: TextStyle(color: Colors.grey.shade600),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
       );
     }
 
@@ -28,14 +30,17 @@ class PostSpecification extends StatelessWidget {
           children: [
             rows[i],
             if (i != rows.length - 1)
-              Divider(height: 1, color: Colors.grey.shade100),
+              Divider(
+                height: 1,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+              ),
           ],
         );
       }),
     );
   }
 
-  List<Widget> _buildRows() {
+  List<Widget> _buildRows(BuildContext context) {
     if (post.fieldValues == null || post.fieldValues!.isEmpty) return [];
 
     final rows = <Widget>[];
@@ -57,9 +62,9 @@ class PostSpecification extends StatelessWidget {
         selectedItems = field.items!
             .where((item) => field.valueIds!.contains(item.id))
             .toList();
-        displayValue = selectedItems.map((item) => item.nameEn ?? '').join(
-          ', ',
-        );
+        displayValue = selectedItems
+            .map((item) => item.nameEn ?? '')
+            .join(', ');
       } else {
         displayValue = field.value ?? '';
       }
@@ -82,7 +87,9 @@ class PostSpecification extends StatelessWidget {
                       .toUpperCase(),
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: Colors.grey.shade500,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.5),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.3,
                   ),
@@ -119,10 +126,10 @@ class PostSpecification extends StatelessWidget {
                             )
                           : Text(
                               displayValue,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black87,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             )),
               ),

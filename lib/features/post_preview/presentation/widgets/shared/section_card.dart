@@ -21,7 +21,7 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,10 +54,10 @@ class _SectionHeaderBar extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15.5,
               fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -70,22 +70,30 @@ class _SectionHeaderBar extends StatelessWidget {
 /// specification tags (e.g. selected feature lists).
 class BadgeChip extends StatelessWidget {
   final String text;
-  final Color background;
-  final Color foreground;
+  final Color? background;
+  final Color? foreground;
 
   const BadgeChip({
     super.key,
     required this.text,
-    required this.background,
-    required this.foreground,
+    this.background,
+    this.foreground,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveBackground =
+        background ??
+        (isDark
+            ? AppColors.brand500.withOpacity(0.15)
+            : AppColors.brand500.withOpacity(0.08));
+    final effectiveForeground = foreground ?? AppColors.brand500;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: background,
+        color: effectiveBackground,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -93,7 +101,7 @@ class BadgeChip extends StatelessWidget {
         style: TextStyle(
           fontSize: 11.5,
           fontWeight: FontWeight.w700,
-          color: foreground,
+          color: effectiveForeground,
         ),
       ),
     );

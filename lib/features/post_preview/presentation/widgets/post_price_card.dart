@@ -40,14 +40,14 @@ class PostPriceCard extends ConsumerWidget {
         : false;
 
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const BadgeChip(
+              BadgeChip(
                 text: 'For sale',
                 background: AppColors.warning500,
                 foreground: Colors.white,
@@ -56,7 +56,12 @@ class PostPriceCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   categoryPath,
-                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade500),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.5),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -70,7 +75,9 @@ class PostPriceCard extends ConsumerWidget {
                 'Price: ',
                 style: TextStyle(
                   fontSize: 15,
-                  color: Colors.grey.shade700,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -90,7 +97,9 @@ class PostPriceCard extends ConsumerWidget {
                     '(Negotiable)',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade500,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.5),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -101,7 +110,10 @@ class PostPriceCard extends ConsumerWidget {
           const SizedBox(height: 14),
           PostStatsRow(views: views, clicks: clicks, rating: rating),
           const SizedBox(height: 14),
-          Divider(height: 1, color: Colors.grey.shade100),
+          Divider(
+            height: 1,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+          ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -145,7 +157,7 @@ class _ActionTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Colors.grey.shade700;
+    final c = color ?? Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),

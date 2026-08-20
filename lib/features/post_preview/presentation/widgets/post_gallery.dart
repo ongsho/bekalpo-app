@@ -34,14 +34,16 @@ class _PostGalleryState extends State<PostGallery> {
         width: double.infinity,
         height: 320,
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2A2D3A)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
           child: Icon(
             Icons.image_not_supported,
             size: 48,
-            color: Colors.grey.shade400,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
           ),
         ),
       );
@@ -64,7 +66,9 @@ class _PostGalleryState extends State<PostGallery> {
                     return GestureDetector(
                       onTap: widget.onFullscreenTap,
                       child: Container(
-                        color: Colors.grey.shade100,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF2A2D3A)
+                            : Colors.grey.shade100,
                         child: Image.network(
                           images[index],
                           fit: BoxFit.cover,
@@ -73,7 +77,9 @@ class _PostGalleryState extends State<PostGallery> {
                             child: Icon(
                               Icons.broken_image_outlined,
                               size: 40,
-                              color: Colors.grey.shade400,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.4),
                             ),
                           ),
                           loadingBuilder: (context, child, progress) {
@@ -177,8 +183,13 @@ class _PostGalleryState extends State<PostGallery> {
                           child: Image.network(
                             images[index],
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                Container(color: Colors.grey.shade200),
+                            errorBuilder: (_, __, ___) => Container(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? const Color(0xFF2A2D3A)
+                                  : Colors.grey.shade200,
+                            ),
                           ),
                         ),
                       ),
@@ -199,7 +210,9 @@ class _PostGalleryState extends State<PostGallery> {
                     decoration: BoxDecoration(
                       color: _index == index
                           ? Theme.of(context).primaryColor
-                          : Colors.grey.shade300,
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),

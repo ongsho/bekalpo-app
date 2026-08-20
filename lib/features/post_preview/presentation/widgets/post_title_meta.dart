@@ -17,34 +17,43 @@ class PostTitleMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 19,
               fontWeight: FontWeight.w700,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
               height: 1.25,
             ),
           ),
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+              Icon(
+                Icons.access_time,
+                size: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              ),
               const SizedBox(width: 4),
               Text(
                 _formatPostedAt(createdAt),
-                style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                ),
               ),
               const SizedBox(width: 14),
               Icon(
                 Icons.location_on_outlined,
                 size: 14,
-                color: Colors.grey.shade500,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               ),
               const SizedBox(width: 4),
               Expanded(
@@ -58,7 +67,9 @@ class PostTitleMeta extends StatelessWidget {
                     location,
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: Colors.grey.shade600,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),

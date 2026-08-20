@@ -22,46 +22,63 @@ class PostPreviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final postAsync = ref.watch(postBySlugProvider(slug));
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: AppColors.surfaceBg,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(''),
-        actions: [
-          postAsync.maybeWhen(
-            data: (post) {
-              final postId = post.id;
-              final wishlisted = postId != null
-                  ? ref.watch(wishlistedProvider(postId))
-                  : false;
-              return IconButton(
-                icon: Icon(
-                  wishlisted ? Icons.favorite : Icons.favorite_border,
-                  color: wishlisted ? Colors.red : Colors.black87,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Column(
+        children: [
+          // ── Top bar ────────────────────────────────────────────────
+          Container(
+            color: AppColors.brand500,
+            padding: EdgeInsets.fromLTRB(4, statusBarHeight + 8, 14, 12),
+            child: Row(
+              children: [
+                // ── Back button ─────────────────────────────────────
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 22),
+                  color: Colors.white,
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-                onPressed: () => _toggleWishlist(context, ref, post),
-              );
-            },
-            orElse: () => const SizedBox.shrink(),
+                const SizedBox(width: 4),
+                // ── Title (empty for space) ─────────────────────────
+                const Expanded(child: SizedBox()),
+                // ── Actions ─────────────────────────────────────────
+                postAsync.maybeWhen(
+                  data: (post) {
+                    final postId = post.id;
+                    final wishlisted = postId != null
+                        ? ref.watch(wishlistedProvider(postId))
+                        : false;
+                    return IconButton(
+                      icon: Icon(
+                        wishlisted ? Icons.favorite : Icons.favorite_border,
+                        color: Colors.white,
+                      ),
+                      onPressed: () => _toggleWishlist(context, ref, post),
+                    );
+                  },
+                  orElse: () => const SizedBox.shrink(),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share_outlined),
+                  color: Colors.white,
+                  onPressed: () {},
+                ),
+              ],
+            ),
           ),
-          IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
-          const SizedBox(width: 4),
+          // ── Body ───────────────────────────────────────────────────
+          Expanded(
+            child: ConnectivityWrapper(
+              child: postAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => _buildError(context, ref, error),
+                data: (post) => _buildContent(context, ref, post),
+              ),
+            ),
+          ),
         ],
-      ),
-      body: ConnectivityWrapper(
-        child: postAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => _buildError(context, ref, error),
-          data: (post) => _buildContent(context, ref, post),
-        ),
       ),
     );
   }
@@ -119,7 +136,10 @@ class PostPreviewScreen extends ConsumerWidget {
             Text(
               errorMessage,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -149,7 +169,7 @@ class PostPreviewScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           Container(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: PostGallery(
               images: images,
@@ -187,7 +207,7 @@ class PostPreviewScreen extends ConsumerWidget {
               post.description ?? 'No description available',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey.shade800,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
                 height: 1.6,
               ),
             ),

@@ -36,9 +36,20 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
     });
 
     try {
+      // Format phone number for backend: ensure it starts with 0
+      String phoneNumber = widget.phone;
+      if (phoneNumber.startsWith('+880')) {
+        phoneNumber = phoneNumber.substring(4);
+      } else if (phoneNumber.startsWith('880')) {
+        phoneNumber = phoneNumber.substring(3);
+      }
+      if (!phoneNumber.startsWith('0')) {
+        phoneNumber = '0$phoneNumber';
+      }
+
       final authRepository = AuthRepositoryImpl();
       final response = await authRepository.signInWithPhone(
-        widget.phone,
+        phoneNumber,
         _passwordController.text,
       );
 
@@ -49,6 +60,7 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
             .login(
               userName: response.user.name,
               userEmail: response.user.email,
+              userPhone: response.user.phone,
               token: response.token,
               avatar: response.user.avatar,
             );
@@ -78,21 +90,37 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
     return error;
   }
 
+  String _formatPhoneForDisplay(String phone) {
+    // Ensure phone starts with 0 for consistency
+    String formattedPhone = phone;
+    if (formattedPhone.startsWith('+880')) {
+      formattedPhone = formattedPhone.substring(4);
+    } else if (formattedPhone.startsWith('880')) {
+      formattedPhone = formattedPhone.substring(3);
+    }
+    if (!formattedPhone.startsWith('0')) {
+      formattedPhone = '0$formattedPhone';
+    }
+    // Display as +88001XXXXXXXXX
+    return '+880${formattedPhone.substring(1)}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Sign In',
           style: TextStyle(
-            color: AppColors.textDark,
+            color: theme.colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -112,40 +140,45 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.brand25,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.phone_outlined,
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Phone',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textGray,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
                               ),
                             ),
                             Text(
-                              widget.phone,
-                              style: const TextStyle(
+                              _formatPhoneForDisplay(widget.phone),
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
+                                color: theme.colorScheme.onSurface,
                               ),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.edit, color: AppColors.brand500),
+                        icon: Icon(
+                          Icons.edit,
+                          color: theme.colorScheme.primary,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -160,17 +193,17 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: AppColors.brand25,
-                    prefixIcon: const Icon(
+                    fillColor: theme.colorScheme.surface,
+                    prefixIcon: Icon(
                       Icons.lock_outlined,
-                      color: AppColors.brand500,
+                      color: theme.colorScheme.primary,
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -179,10 +212,23 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
                       },
                     ),
                     hintText: 'Password',
-                    hintStyle: TextStyle(color: Colors.grey[400]),
+                    hintStyle: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: theme.dividerColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: theme.dividerColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                     errorText: _errorMessage,
                   ),
@@ -209,10 +255,10 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
                         const SnackBar(content: Text('Forgot password - TODO')),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Forgot Password?',
                       style: TextStyle(
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -262,16 +308,19 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
                   children: [
                     Text(
                       "Don't have an account? ",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 14,
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: const Text(
+                      child: Text(
                         'Sign Up',
                         style: TextStyle(
-                          color: AppColors.brand500,
+                          color: theme.colorScheme.primary,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),

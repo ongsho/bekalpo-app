@@ -10,6 +10,7 @@ import 'email_signin_screen.dart';
 import 'set_password_screen.dart';
 import 'phone_signup_screen.dart';
 import 'phone_signin_screen.dart';
+import 'otp_verification_screen.dart';
 
 class AuthEntryScreen extends ConsumerStatefulWidget {
   const AuthEntryScreen({super.key});
@@ -22,8 +23,9 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _phoneFocusNode = FocusNode();
 
-  AuthMode _authMode = AuthMode.email;
+  AuthMode _authMode = AuthMode.phone;
   String _countryCode = '+880';
   bool _isLoading = false;
   String? _errorMessage;
@@ -38,6 +40,12 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   void initState() {
     super.initState();
     _loadCachedGoogleAccount();
+    // Auto focus phone input field when phone mode is default
+    if (_authMode == AuthMode.phone) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _phoneFocusNode.requestFocus();
+      });
+    }
   }
 
   Future<void> _loadCachedGoogleAccount() async {
@@ -53,6 +61,7 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   void dispose() {
     _emailController.dispose();
     _phoneController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -63,8 +72,13 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
       // Clear the inactive mode's input
       if (_authMode == AuthMode.email) {
         _phoneController.clear();
+        _phoneFocusNode.unfocus();
       } else {
         _emailController.clear();
+        // Auto focus phone field when switching to phone mode
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _phoneFocusNode.requestFocus();
+        });
       }
     });
   }
@@ -83,9 +97,64 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   }
 
   bool _isValidPhone(String phone) {
-    // Basic validation - at least 10 digits for most countries
-    final phoneRegex = RegExp(r'^[0-9]{10,15}$');
-    return phoneRegex.hasMatch(phone);
+    // Accept both formats: 01967569642 (11 digits with leading 0) or 1967569642 (10 digits without leading 0)
+    final phoneWithZero = RegExp(r'^0[0-9]{10}$'); // 0 followed by 10 digits
+    final phoneWithoutZero = RegExp(r'^[0-9]{10}$'); // exactly 10 digits
+    return phoneWithZero.hasMatch(phone) || phoneWithoutZero.hasMatch(phone);
+  }
+
+  String? _getPhoneErrorMessage(String phone) {
+    if (phone.isEmpty) {
+      return 'Please enter your phone number';
+    }
+
+    // Check if it contains any non-digit characters (except leading +)
+    final cleanPhone = phone.replaceAll('+', '');
+    if (!RegExp(r'^[0-9]+$').hasMatch(cleanPhone)) {
+      return 'Phone number can only contain digits';
+    }
+
+    // Check length and format
+    final phoneWithZero = RegExp(r'^0[0-9]{10}$');
+    final phoneWithoutZero = RegExp(r'^[0-9]{10}$');
+
+    if (phoneWithZero.hasMatch(phone)) {
+      return null; // Valid format: 01967569642
+    }
+
+    if (phoneWithoutZero.hasMatch(phone)) {
+      return null; // Valid format: 1967569642
+    }
+
+    // Provide specific error message based on the issue
+    if (phone.startsWith('+880') || phone.startsWith('880')) {
+      return 'Please enter number without country code (e.g., 01967569642)';
+    }
+
+    if (phone.length < 10) {
+      return 'Phone number must be at least 10 digits';
+    }
+
+    if (phone.length > 11) {
+      return 'Phone number cannot exceed 11 digits';
+    }
+
+    return 'Invalid phone format. Use 01967569642 or 1967569642';
+  }
+
+  // Format phone number for backend: always send clean number starting with 0
+  String _formatPhoneNumberForBackend(String phoneNumber) {
+    // Remove any existing country code prefix if present
+    if (phoneNumber.startsWith('+880')) {
+      phoneNumber = phoneNumber.substring(4);
+    } else if (phoneNumber.startsWith('880')) {
+      phoneNumber = phoneNumber.substring(3);
+    }
+    // Ensure number starts with 0
+    if (!phoneNumber.startsWith('0')) {
+      phoneNumber = '0$phoneNumber';
+    }
+    return phoneNumber;
   }
 
   String _extractErrorMessage(String error) {
@@ -101,6 +170,18 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   }
 
   Future<void> _handleContinue() async {
+    // Validate phone number format before proceeding
+    if (_authMode == AuthMode.phone) {
+      final phoneInput = _phoneController.text.trim();
+      final phoneError = _getPhoneErrorMessage(phoneInput);
+      if (phoneError != null) {
+        setState(() {
+          _errorMessage = phoneError;
+        });
+        return;
+      }
+    }
+
     if (!_isInputValid()) return;
 
     setState(() {
@@ -128,17 +209,23 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
           _navigateToSetPassword(email: email);
         }
       } else {
-        final phone = '$_countryCode${_phoneController.text.trim()}';
-        final response = await authRepository.checkPhone(phone);
+        // Format phone number: ensure it starts with 0, send clean number without country code prefix
+        final phoneNumber = _formatPhoneNumberForBackend(
+          _phoneController.text.trim(),
+        );
+        final response = await authRepository.checkPhone(phoneNumber);
 
         if (!mounted) return;
 
-        if (response.requiresSignup) {
+        if (response.requiresPhoneSignup) {
           // Navigate to phone signup flow
-          _navigateToPhoneSignup(phone: phone);
-        } else if (response.requiresSignin) {
+          _navigateToPhoneSignup(phone: phoneNumber);
+        } else if (response.requiresPhoneVerify) {
+          // Navigate to OTP verification flow
+          _navigateToPhoneVerify(phone: phoneNumber);
+        } else if (response.requiresPhoneSignin) {
           // Navigate to phone signin flow
-          _navigateToPhoneSignin(phone: phone);
+          _navigateToPhoneSignin(phone: phoneNumber);
         }
       }
     } catch (e) {
@@ -223,15 +310,47 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   void _navigateToPhoneSignup({required String phone}) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PhoneSignupScreen(phone: phone)),
+      MaterialPageRoute(
+        builder: (context) =>
+            PhoneSignupScreen(phone: _formatPhoneForDisplay(phone)),
+      ),
+    );
+  }
+
+  void _navigateToPhoneVerify({required String phone}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            OtpVerificationScreen(phone: _formatPhoneForDisplay(phone)),
+      ),
     );
   }
 
   void _navigateToPhoneSignin({required String phone}) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PhoneSigninScreen(phone: phone)),
+      MaterialPageRoute(
+        builder: (context) =>
+            PhoneSigninScreen(phone: _formatPhoneForDisplay(phone)),
+      ),
     );
+  }
+
+  // Format phone number for display (add country code)
+  String _formatPhoneForDisplay(String phone) {
+    // Ensure phone starts with 0 for consistency
+    String formattedPhone = phone;
+    if (formattedPhone.startsWith('+880')) {
+      formattedPhone = formattedPhone.substring(4);
+    } else if (formattedPhone.startsWith('880')) {
+      formattedPhone = formattedPhone.substring(3);
+    }
+    if (!formattedPhone.startsWith('0')) {
+      formattedPhone = '0$formattedPhone';
+    }
+    // Display as +88001XXXXXXXXX
+    return '+880${formattedPhone.substring(1)}';
   }
 
   void _navigateToSetPassword({required String email}) {
@@ -244,7 +363,14 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(
+        uri,
+        mode: LaunchMode.inAppWebView,
+        webViewConfiguration: const WebViewConfiguration(
+          enableJavaScript: true,
+          enableDomStorage: true,
+        ),
+      );
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -255,8 +381,17 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -265,14 +400,14 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 // Heading
                 Text(
                   _authMode.heading,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textDark,
+                    color: theme.colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -288,6 +423,7 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                 else
                   _PhoneInputField(
                     phoneController: _phoneController,
+                    phoneFocusNode: _phoneFocusNode,
                     countryCode: _countryCode,
                     onCountryCodeChanged: (code) {
                       setState(() {
@@ -295,10 +431,28 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                       });
                     },
                     errorMessage: _errorMessage,
-                    onChanged: () => setState(() {}),
+                    onChanged: () {
+                      setState(() {
+                        // Clear error when user starts typing
+                        _errorMessage = null;
+                      });
+                    },
                   ),
 
                 const SizedBox(height: 24),
+
+                // Error message display
+                if (_errorMessage != null && _authMode == AuthMode.phone)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
 
                 // Continue button
                 ElevatedButton(
@@ -339,19 +493,18 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                 // Divider
                 Row(
                   children: [
-                    const Expanded(
-                      child: Divider(color: AppColors.surfaceBorder),
-                    ),
+                    Expanded(child: Divider(color: theme.dividerColor)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         'or',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                    const Expanded(
-                      child: Divider(color: AppColors.surfaceBorder),
-                    ),
+                    Expanded(child: Divider(color: theme.dividerColor)),
                   ],
                 ),
 
@@ -369,11 +522,14 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
                 // Mode switch button
                 TextButton.icon(
                   onPressed: _toggleAuthMode,
-                  icon: Icon(_authMode.toggleIcon, color: AppColors.brand500),
+                  icon: Icon(
+                    _authMode.toggleIcon,
+                    color: theme.colorScheme.primary,
+                  ),
                   label: Text(
                     _authMode.toggleText,
-                    style: const TextStyle(
-                      color: AppColors.brand500,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -384,8 +540,9 @@ class _AuthEntryScreenState extends ConsumerState<AuthEntryScreen> {
 
                 // Footer
                 _Footer(
-                  onTermsTap: () => _launchUrl('https://bekalpo.com/terms'),
-                  onPrivacyTap: () => _launchUrl('https://bekalpo.com/privacy'),
+                  onTermsTap: () => _launchUrl('https://bekalpo.com/tos'),
+                  onPrivacyTap: () =>
+                      _launchUrl('https://bekalpo.com/privacy-policy'),
                 ),
               ],
             ),
@@ -409,19 +566,33 @@ class _EmailInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return TextFormField(
       controller: controller,
       keyboardType: TextInputType.emailAddress,
       onChanged: (_) => onChanged(),
       decoration: InputDecoration(
         filled: true,
-        fillColor: AppColors.brand25,
-        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.brand500),
+        fillColor: theme.colorScheme.surface,
+        prefixIcon: Icon(
+          Icons.email_outlined,
+          color: theme.colorScheme.primary,
+        ),
         hintText: 'info@gmail.com',
-        hintStyle: TextStyle(color: Colors.grey[400]),
+        hintStyle: TextStyle(
+          color: theme.colorScheme.onSurface.withOpacity(0.4),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(color: theme.dividerColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.dividerColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
         ),
         errorText: errorMessage,
       ),
@@ -441,6 +612,7 @@ class _EmailInputField extends StatelessWidget {
 
 class _PhoneInputField extends StatelessWidget {
   final TextEditingController phoneController;
+  final FocusNode phoneFocusNode;
   final String countryCode;
   final Function(String) onCountryCodeChanged;
   final String? errorMessage;
@@ -448,6 +620,7 @@ class _PhoneInputField extends StatelessWidget {
 
   const _PhoneInputField({
     required this.phoneController,
+    required this.phoneFocusNode,
     required this.countryCode,
     required this.onCountryCodeChanged,
     this.errorMessage,
@@ -456,12 +629,13 @@ class _PhoneInputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       children: [
         // Country code picker
         Container(
           decoration: BoxDecoration(
-            color: AppColors.brand25,
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
           ),
           child: CountryCodePicker(
@@ -481,29 +655,35 @@ class _PhoneInputField extends StatelessWidget {
         Expanded(
           child: TextFormField(
             controller: phoneController,
+            focusNode: phoneFocusNode,
+            autofocus: true,
             keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.done,
             onChanged: (_) => onChanged(),
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppColors.brand25,
-              hintText: '1900000000',
-              hintStyle: TextStyle(color: Colors.grey[400]),
+              fillColor: theme.colorScheme.surface,
+              hintText: '01900000000',
+              hintStyle: TextStyle(
+                color: theme.colorScheme.onSurface.withOpacity(0.4),
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: theme.dividerColor),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.dividerColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.primary,
+                  width: 2,
+                ),
               ),
               errorText: errorMessage,
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your phone number';
-              }
-              final phoneRegex = RegExp(r'^[0-9]{10,15}$');
-              if (!phoneRegex.hasMatch(value)) {
-                return 'Please enter a valid phone number';
-              }
-              return null;
-            },
           ),
         ),
       ],
@@ -519,15 +699,16 @@ class _GoogleOneTapChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(28),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.brand25,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: AppColors.brand100),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -539,7 +720,11 @@ class _GoogleOneTapChip extends StatelessWidget {
                   ? NetworkImage(account.photoUrl!)
                   : null,
               child: account.photoUrl == null
-                  ? const Icon(Icons.person, size: 20)
+                  ? Icon(
+                      Icons.person,
+                      size: 20,
+                      color: theme.colorScheme.onSurface,
+                    )
                   : null,
             ),
             const SizedBox(width: 12),
@@ -550,15 +735,18 @@ class _GoogleOneTapChip extends StatelessWidget {
               children: [
                 Text(
                   account.displayName ?? 'User',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 Text(
                   account.email,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
                 ),
               ],
             ),
@@ -566,8 +754,8 @@ class _GoogleOneTapChip extends StatelessWidget {
             // Google icon
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
                 shape: BoxShape.circle,
               ),
               child: const Text(
@@ -594,12 +782,13 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: AppColors.textGray,
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
           height: 1.5,
         ),
         children: [
@@ -609,10 +798,10 @@ class _Footer extends StatelessWidget {
           WidgetSpan(
             child: GestureDetector(
               onTap: onTermsTap,
-              child: const Text(
+              child: Text(
                 'Terms of Service',
                 style: TextStyle(
-                  color: AppColors.brand500,
+                  color: theme.colorScheme.primary,
                   decoration: TextDecoration.underline,
                 ),
               ),
@@ -622,10 +811,10 @@ class _Footer extends StatelessWidget {
           WidgetSpan(
             child: GestureDetector(
               onTap: onPrivacyTap,
-              child: const Text(
+              child: Text(
                 'Privacy Policy',
                 style: TextStyle(
-                  color: AppColors.brand500,
+                  color: theme.colorScheme.primary,
                   decoration: TextDecoration.underline,
                 ),
               ),

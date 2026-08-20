@@ -108,6 +108,7 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
             .login(
               userName: signinResponse.user.name,
               userEmail: signinResponse.user.email,
+              userPhone: signinResponse.user.phone,
               token: signinResponse.token,
               avatar: signinResponse.user.avatar,
             );
@@ -143,19 +144,20 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Set Password',
           style: TextStyle(
-            color: AppColors.textDark,
+            color: theme.colorScheme.onSurface,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -175,20 +177,23 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.brand25,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.brand200),
+                    border: Border.all(color: theme.dividerColor),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: AppColors.brand500),
+                      Icon(
+                        Icons.info_outline,
+                        color: theme.colorScheme.primary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'You signed up with Google. Please verify your email and set a password to enable email sign-in.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textDark,
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -202,33 +207,35 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppColors.brand25,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.email_outlined,
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Email',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textGray,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
                               ),
                             ),
                             Text(
                               widget.email,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
+                                color: theme.colorScheme.onSurface,
                               ),
                             ),
                           ],
@@ -240,14 +247,29 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
 
                 const SizedBox(height: 32),
 
+                // Error message display
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
                 // Send OTP button (if OTP not sent)
                 if (!_otpSent)
                   ElevatedButton(
                     onPressed: _isSendingOtp ? null : _handleSendOtp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brand500,
+                      backgroundColor: theme.colorScheme.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.brand200,
+                      disabledBackgroundColor: theme.colorScheme.primary
+                          .withOpacity(0.5),
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -280,16 +302,29 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AppColors.brand25,
-                      prefixIcon: const Icon(
+                      fillColor: theme.colorScheme.surface,
+                      prefixIcon: Icon(
                         Icons.sms_outlined,
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                       ),
                       hintText: 'Enter OTP',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      hintStyle: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
                       ),
                       errorText: _errorMessage,
                     ),
@@ -312,17 +347,17 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AppColors.brand25,
-                      prefixIcon: const Icon(
+                      fillColor: theme.colorScheme.surface,
+                      prefixIcon: Icon(
                         Icons.lock_outlined,
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: AppColors.brand500,
+                          color: theme.colorScheme.primary,
                         ),
                         onPressed: () {
                           setState(() {
@@ -331,10 +366,23 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                         },
                       ),
                       hintText: 'Password',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      hintStyle: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -356,17 +404,17 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                     obscureText: _obscureConfirmPassword,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: AppColors.brand25,
-                      prefixIcon: const Icon(
+                      fillColor: theme.colorScheme.surface,
+                      prefixIcon: Icon(
                         Icons.lock_outlined,
-                        color: AppColors.brand500,
+                        color: theme.colorScheme.primary,
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: AppColors.brand500,
+                          color: theme.colorScheme.primary,
                         ),
                         onPressed: () {
                           setState(() {
@@ -375,10 +423,23 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                         },
                       ),
                       hintText: 'Confirm Password',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      hintStyle: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: theme.dividerColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -398,9 +459,10 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleSetPassword,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brand500,
+                      backgroundColor: theme.colorScheme.primary,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.brand200,
+                      disabledBackgroundColor: theme.colorScheme.primary
+                          .withOpacity(0.5),
                       minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -436,8 +498,8 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                         'Resend OTP',
                         style: TextStyle(
                           color: _isSendingOtp
-                              ? Colors.grey
-                              : AppColors.brand500,
+                              ? theme.colorScheme.onSurface.withOpacity(0.3)
+                              : theme.colorScheme.primary,
                           fontSize: 14,
                         ),
                       ),
@@ -451,9 +513,12 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(color: AppColors.textGray, fontSize: 14),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),

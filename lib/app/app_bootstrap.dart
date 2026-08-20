@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/network/internet_service.dart';
+import '../core/network/app_update_service.dart';
 import '../core/providers/theme_provider.dart';
 import '../core/constants/app_colors.dart';
 import 'app.dart';
@@ -19,6 +20,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
   void initState() {
     super.initState();
     InternetService().initialize();
+    AppUpdateService().checkForUpdate();
   }
 
   @override

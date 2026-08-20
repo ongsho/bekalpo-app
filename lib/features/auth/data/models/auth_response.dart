@@ -1,5 +1,5 @@
 class AuthResponse {
-  final bool status;
+  final dynamic status; // Can be bool or string
   final String? message;
   final String? action;
   final Map<String, dynamic>? errors;
@@ -11,15 +11,33 @@ class AuthResponse {
       status: json['status'] ?? false,
       message: json['message'],
       action: json['action'],
-      errors: json['errors'] != null
-          ? Map<String, dynamic>.from(json['errors'])
+      errors: (json['error'] ?? json['errors']) != null
+          ? Map<String, dynamic>.from(json['error'] ?? json['errors'])
           : null,
     );
   }
 
-  bool get requiresSignup => !status && action == null; // Email doesn't exist
+  // Helper to check if status is successful (can be bool true or string "success")
+  bool get isSuccess {
+    if (status is bool) return status as bool;
+    if (status is String) return status == 'success';
+    return false;
+  }
+
+  // Email check response logic
+  bool get requiresSignup =>
+      !isSuccess && action == null; // Email doesn't exist
   bool get requiresSignin =>
-      status && action == 'signin'; // User exists with password
+      isSuccess && action == 'signin'; // User exists with password
   bool get requiresSetPassword =>
-      status && action == 'set_password'; // Google user without password
+      isSuccess && action == 'set_password'; // Google user without password
+
+  // Phone check response logic
+  bool get requiresPhoneSignup =>
+      !isSuccess && action == null; // Phone doesn't exist -> go to signup
+  bool get requiresPhoneVerify =>
+      !isSuccess &&
+      action == 'verifyPhone'; // Phone exists but not verified -> go to OTP
+  bool get requiresPhoneSignin =>
+      isSuccess; // Phone exists and verified -> go to signin
 }

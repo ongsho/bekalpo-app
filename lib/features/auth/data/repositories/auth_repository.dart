@@ -13,10 +13,6 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       final authResponse = AuthResponse.fromJson(response);
 
-      if (!authResponse.status && authResponse.errors != null) {
-        throw _extractErrorMessage(authResponse.errors);
-      }
-
       return authResponse;
     } catch (e) {
       throw Exception('Failed to check email: $e');
@@ -31,10 +27,6 @@ class AuthRepositoryImpl implements AuthRepository {
         data: {'phone': phone},
       );
       final authResponse = AuthResponse.fromJson(response);
-
-      if (!authResponse.status && authResponse.errors != null) {
-        throw _extractErrorMessage(authResponse.errors);
-      }
 
       return authResponse;
     } catch (e) {
@@ -51,30 +43,10 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       final authResponse = AuthResponse.fromJson(response);
 
-      if (!authResponse.status && authResponse.errors != null) {
-        throw _extractErrorMessage(authResponse.errors);
-      }
-
       return authResponse;
     } catch (e) {
       throw Exception('Failed to sign in with Google: $e');
     }
-  }
-
-  String _extractErrorMessage(Map<String, dynamic>? errors) {
-    if (errors == null) return 'An error occurred';
-
-    // Extract first error message from errors object
-    final firstKey = errors.keys.first;
-    final firstError = errors[firstKey];
-
-    if (firstError is List && firstError.isNotEmpty) {
-      return firstError[0].toString();
-    } else if (firstError is String) {
-      return firstError;
-    }
-
-    return 'An error occurred';
   }
 
   @override
@@ -87,7 +59,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final signinResponse = SigninResponse.fromJson(response);
 
       if (!signinResponse.isSuccess) {
-        throw Exception('Signin failed');
+        throw Exception(signinResponse.message ?? 'Signin failed');
       }
 
       return signinResponse;
@@ -106,7 +78,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final signinResponse = SigninResponse.fromJson(response);
 
       if (!signinResponse.isSuccess) {
-        throw Exception('Signin failed');
+        throw Exception(signinResponse.message ?? 'Signin failed');
       }
 
       return signinResponse;
@@ -128,7 +100,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       final authResponse = AuthResponse.fromJson(response);
 
-      if (!authResponse.status && authResponse.errors != null) {
+      if (authResponse.errors != null) {
         throw _extractErrorMessage(authResponse.errors);
       }
 
@@ -136,6 +108,22 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       throw Exception('Failed to signup with phone: $e');
     }
+  }
+
+  String _extractErrorMessage(Map<String, dynamic>? errors) {
+    if (errors == null) return 'An error occurred';
+
+    // Extract first error message from errors object
+    final firstKey = errors.keys.first;
+    final firstError = errors[firstKey];
+
+    if (firstError is List && firstError.isNotEmpty) {
+      return firstError[0].toString();
+    } else if (firstError is String) {
+      return firstError;
+    }
+
+    return 'An error occurred';
   }
 
   @override
@@ -148,7 +136,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final signinResponse = SigninResponse.fromJson(response);
 
       if (!signinResponse.isSuccess) {
-        throw Exception('Verification failed');
+        throw Exception(signinResponse.message ?? 'Verification failed');
       }
 
       return signinResponse;

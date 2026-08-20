@@ -1,12 +1,14 @@
 class SigninResponse {
-  final String status;
+  final dynamic status;
   final String token;
   final UserData user;
+  final String? message;
 
   SigninResponse({
     required this.status,
     required this.token,
     required this.user,
+    this.message,
   });
 
   factory SigninResponse.fromJson(Map<String, dynamic> json) {
@@ -14,16 +16,21 @@ class SigninResponse {
       status: json['status'] ?? '',
       token: json['token'] ?? '',
       user: UserData.fromJson(json['user'] ?? {}),
+      message: json['message'],
     );
   }
 
-  bool get isSuccess => status == 'success';
+  bool get isSuccess {
+    if (status is bool) return status as bool;
+    if (status is String) return status == 'success';
+    return false;
+  }
 }
 
 class UserData {
   final int id;
   final String name;
-  final String email;
+  final String? email;
   final String? emailVerifiedAt;
   final String? phone;
   final String? phoneVerifiedAt;
@@ -39,7 +46,7 @@ class UserData {
   UserData({
     required this.id,
     required this.name,
-    required this.email,
+    this.email,
     this.emailVerifiedAt,
     this.phone,
     this.phoneVerifiedAt,
@@ -57,7 +64,7 @@ class UserData {
     return UserData(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      email: json['email'] ?? '',
+      email: json['email'],
       emailVerifiedAt: json['email_verified_at'],
       phone: json['phone'],
       phoneVerifiedAt: json['phone_verified_at'],
@@ -68,8 +75,8 @@ class UserData {
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
       username: json['username'] ?? '',
-      userDetail: json['user_detail'] != null 
-          ? UserDetail.fromJson(json['user_detail']) 
+      userDetail: json['user_detail'] != null
+          ? UserDetail.fromJson(json['user_detail'])
           : null,
     );
   }

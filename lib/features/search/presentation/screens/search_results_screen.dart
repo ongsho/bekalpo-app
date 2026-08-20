@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/search_provider.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../core/mappers/post_mapper.dart';
@@ -61,6 +62,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(searchProvider(_filters));
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return PopScope(
       canPop: false,
@@ -70,14 +72,41 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _handleBack,
-          ),
-          title: Text('Results for "${widget.query}"'),
+        body: Column(
+          children: [
+            // ── Top bar ────────────────────────────────────────────────
+            Container(
+              color: AppColors.brand500,
+              padding: EdgeInsets.fromLTRB(4, statusBarHeight + 8, 14, 12),
+              child: Row(
+                children: [
+                  // ── Back button ─────────────────────────────────────
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, size: 22),
+                    color: Colors.white,
+                    onPressed: _handleBack,
+                  ),
+                  const SizedBox(width: 4),
+                  // ── Title ───────────────────────────────────────────
+                  Expanded(
+                    child: Text(
+                      'Results for "${widget.query}"',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── Body ───────────────────────────────────────────────────
+            Expanded(child: ConnectivityWrapper(child: _buildBody(state))),
+          ],
         ),
-        body: ConnectivityWrapper(child: _buildBody(state)),
       ),
     );
   }

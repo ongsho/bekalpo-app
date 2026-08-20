@@ -132,7 +132,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
         children: [
           // ── Top bar ────────────────────────────────────────────────
@@ -152,8 +152,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
                 // ── Search box — standalone, white rounded ───────────
                 Expanded(
-                  child: SizedBox(
+                  child: Container(
                     height: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Row(
                       children: [
                         Expanded(
@@ -161,14 +165,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             controller: _controller,
                             focusNode: _focusNode,
                             textInputAction: TextInputAction.search,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'Search products, brands...',
                               hintStyle: TextStyle(
                                 fontSize: 13.5,
-                                color: Colors.black45,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
                               ),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                               isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
                             ),
                             style: const TextStyle(
                               fontSize: 14,
@@ -187,7 +197,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             child: Icon(
                               Icons.clear,
                               size: 18,
-                              color: Colors.grey.shade500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.5),
                             ),
                           ),
                       ],
@@ -216,28 +228,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     if (_error != null) {
       return Center(
-        child: Text(_error!, style: const TextStyle(color: Colors.red)),
+        child: Text(_error!, style: TextStyle(color: Colors.red.shade400)),
       );
     }
 
     if (_suggestions.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No suggestions found',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
         ),
       );
     }
 
     return ListView.separated(
       itemCount: _suggestions.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
+      separatorBuilder: (context, index) => Divider(
+        height: 1,
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+      ),
       itemBuilder: (context, index) {
         final s = _suggestions[index];
         final isProduct = s.type == 'product';
         final isEnriched = s.type == 'enriched';
 
         return ListTile(
+          iconColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          textColor: Theme.of(context).colorScheme.onSurface,
           leading: isProduct && s.image != null
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -249,21 +268,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     placeholder: (context, url) => Container(
                       width: 50,
                       height: 50,
-                      color: Colors.grey.shade200,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF2A2D3A)
+                          : Colors.grey.shade200,
                       child: Icon(
                         Icons.shopping_bag_outlined,
                         size: 24,
-                        color: Colors.grey.shade400,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.4),
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
                       width: 50,
                       height: 50,
-                      color: Colors.grey.shade200,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF2A2D3A)
+                          : Colors.grey.shade200,
                       child: Icon(
                         Icons.shopping_bag_outlined,
                         size: 24,
-                        color: Colors.grey.shade400,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.4),
                       ),
                     ),
                   ),
@@ -274,7 +301,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       : isProduct
                       ? Icons.shopping_bag_outlined
                       : Icons.search,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
                   size: 24,
                 ),
           title: isEnriched && s.query != null
@@ -289,7 +318,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           subtitle: s.description != null && s.description!.isNotEmpty
               ? Text(
                   _truncateDescription(s.description!),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: const TextStyle(fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 )
@@ -302,10 +331,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildSearchHistory(List<SearchHistoryItem> searchHistory) {
     if (searchHistory.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Search for anything on Bekalpo',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
         ),
       );
     }
@@ -319,12 +350,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Recent Searches',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               TextButton(
@@ -359,11 +390,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildHistoryChip(SearchHistoryItem item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: isDark ? const Color(0xFF2A2D3A) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3A3D4A) : Colors.grey.shade300,
+        ),
       ),
       child: InkWell(
         onTap: () {
@@ -376,11 +410,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.history, size: 16, color: Colors.grey.shade600),
+              Icon(
+                Icons.history,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
               const SizedBox(width: 6),
               Text(
                 item.query,
-                style: const TextStyle(fontSize: 14, color: Colors.black87),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(width: 6),
               GestureDetector(
@@ -389,7 +430,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       .read(searchHistoryProvider.notifier)
                       .removeSearchQuery(item.query);
                 },
-                child: Icon(Icons.close, size: 16, color: Colors.grey.shade500),
+                child: Icon(
+                  Icons.close,
+                  size: 16,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.5),
+                ),
               ),
             ],
           ),
@@ -416,7 +463,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (currentQuery.isEmpty) {
       return Text(
         text,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       );
     }
 
@@ -428,7 +479,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (index == -1) {
       return Text(
         text,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       );
     }
 
@@ -437,26 +492,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         children: [
           TextSpan(
             text: text.substring(0, index),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.normal,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           TextSpan(
             text: text.substring(index, index + currentQuery.length),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           TextSpan(
             text: text.substring(index + currentQuery.length),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.normal,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],

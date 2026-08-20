@@ -1,41 +1,58 @@
 # In-App Update Testing Guide
 
-This guide explains how to test the Google Play In-App Update functionality in development and production.
+This guide explains how to test the Google Play In-App Update functionality.
 
 ## Overview
 
-The `AppUpdateService` supports two modes:
-1. **Production Mode**: Uses actual Google Play In-App Update API
-2. **Mock Mode**: Simulates update scenarios for development testing
+The `AppUpdateService` uses the actual Google Play In-App Update API. Google Play handles all UI elements (dialogs, notifications, progress bars) natively.
+
+**Important**: In-app updates only work when the app is installed from Google Play Store. Debug APKs cannot test in-app updates.
 
 ## Production Testing
 
-To test in-app updates in production, you need to deploy your app to Google Play with different version codes.
+To test in-app updates, you must deploy your app to Google Play with different version codes.
 
 ### Steps:
 
-1. **Deploy Test Version**: Upload version `1.3.0+9` to Play Store (internal testing track)
-2. **Deploy New Version**: Upload version `1.4.0+10` to Play Store (internal testing track)
-3. **Install Test Version**: Install version `1.3.0+9` on a test device
-4. **Check for Updates**: The app will automatically check for updates on launch
-5. **Verify Update Flow**: The update dialog/flow should appear based on update type
+1. **Deploy Current Version to Play Store:**
+   - Go to [Play Console](https://play.google.com/console)
+   - Select your app
+   - Navigate to **Testing & Release → Internal Testing**
+   - Build release APK: `flutter build apk --release`
+   - Upload version `1.3.0+9` to Internal Testing track
+   - Wait for review (usually quick for internal testing)
+
+2. **Deploy Newer Version:**
+   - Update version in `pubspec.yaml`: `version: 1.4.0+10`
+   - Build release APK: `flutter build apk --release`
+   - Upload version `1.4.0+10` to Internal Testing track
+   - Wait for review
+
+3. **Test on Device:**
+   - Add yourself as a tester in Internal Testing settings
+   - Open the opt-in URL on your test device
+   - Install version `1.3.0+9` from Play Store
+   - Open the app
+   - Google Play will show the native update dialog automatically
 
 ### Update Types:
 
-- **Immediate Update**: Blocks app usage until update is complete
-- **Flexible Update**: Allows user to continue using app while update downloads
+- **Immediate Update**: Google Play shows a full-screen dialog blocking app usage until update completes
+- **Flexible Update**: Google Play downloads in background and shows a snackbar/notification when complete
 
 ## Development Testing (Mock Mode)
 
-Mock mode allows you to test the update service without deploying to Play Store.
+Mock mode allows you to test the service logic without Play Store deployment, but **it does not show Google Play UI**.
 
 ### Enabling Mock Mode
 
-```dart
-import 'package:bekalpo/core/network/app_update_service.dart';
+In `lib/app/app.dart`, uncomment these lines:
 
-final service = AppUpdateService();
-service.enableMockMode();
+```dart
+if (kDebugMode) {
+  AppUpdateService().enableMockMode();
+  AppUpdateService().setMockScenario('flexible_update');
+}
 ```
 
 ### Mock Scenarios
@@ -46,146 +63,95 @@ The service supports three mock scenarios:
 
 ```dart
 service.setMockScenario('no_update');
-final result = await service.checkForUpdate();
-// result will be null
+await service.checkForUpdate();
+// Logs: "Mock - No update available"
 ```
 
 #### 2. Immediate Update Available
 
 ```dart
 service.setMockScenario('immediate_update');
-final result = await service.checkForUpdate();
-// Immediate update will start automatically
-// result will be null
+await service.checkForUpdate();
+// Logs: "Mock - Immediate update available"
+// Simulates immediate update starting
 ```
 
 #### 3. Flexible Update Available
 
 ```dart
 service.setMockScenario('flexible_update');
-final result = await service.checkForUpdate();
-// result will be null (simulated)
-// You can show update UI to user
-```
-
-### Complete Mock Test Example
-
-```dart
-void testUpdateService() {
-  final service = AppUpdateService();
-  service.enableMockMode();
-  
-  // Test no update
-  service.setMockScenario('no_update');
-  service.checkForUpdate().then((result) {
-    print('No update test: $result');
-  });
-  
-  // Test immediate update
-  service.setMockScenario('immediate_update');
-  service.checkForUpdate().then((result) {
-    print('Immediate update test: $result');
-  });
-  
-  // Test flexible update
-  service.setMockScenario('flexible_update');
-  service.checkForUpdate().then((result) {
-    print('Flexible update test: $result');
-  });
-  
-  // Disable mock mode when done
-  service.disableMockMode();
-}
+await service.checkForUpdate();
+// Logs: "Mock - Flexible update available"
+// Simulates flexible update starting
 ```
 
 ### Running Built-in Mock Tests
-
-The service includes a built-in test function:
 
 ```dart
 AppUpdateService.runMockTests();
 ```
 
-This will print test scenarios to the console for manual testing.
+This will print test scenarios to the console.
 
 ## Integration in App
 
-The service is already integrated in `app_bootstrap.dart`:
+The service is integrated in `lib/app/app.dart` inside the `_UpdateChecker` widget:
 
 ```dart
-@override
-void initState() {
-  super.initState();
-  InternetService().initialize();
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    AppUpdateService().checkForUpdate();
-  });
-}
-```
+class _UpdateCheckerState extends State<_UpdateChecker> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdates();
+    });
+  }
 
-### Handling Flexible Updates
-
-For flexible updates, you need to show UI to the user and call `startFlexibleUpdate()` when they accept:
-
-```dart
-final updateInfo = await AppUpdateService().checkForUpdate();
-if (updateInfo != null) {
-  // Show update dialog
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Update Available'),
-      content: const Text('A new version is available.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Later'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context);
-            AppUpdateService().startFlexibleUpdate();
-          },
-          child: const Text('Update Now'),
-        ),
-      ],
-    ),
-  );
+  Future<void> _checkForUpdates() async {
+    final updateInfo = await AppUpdateService().checkForUpdate();
+    // Google Play handles all UI automatically
+    // No custom dialog needed
+  }
 }
 ```
 
 ## Best Practices
 
-1. **Enable Mock Mode Only in Development**: Never enable mock mode in production builds
-2. **Reset Check State**: Use `resetCheckState()` to re-check for updates during testing
-3. **Handle Update Progress**: Show progress indicators for flexible updates
-4. **Test on Real Devices**: Play Store in-app updates only work on real Android devices, not emulators
-5. **Use Internal Testing Track**: Use Play Store's internal testing track for early testing
+1. **Only Test with Play Store**: In-app updates require Play Store installation
+2. **Use Internal Testing Track**: Use internal testing for development testing
+3. **Test on Real Devices**: In-app updates don't work on emulators
+4. **Check Version Codes**: Ensure newer version has higher version code
+5. **Wait for Propagation**: Play Store updates can take 2-3 hours to propagate
 
 ## Troubleshooting
 
-### Updates Not Showing in Production
+### Updates Not Showing
 
-- Ensure the app is installed from Play Store (not sideloaded)
-- Check that the new version has a higher version code
-- Verify the app is signed with the same signing key
-- Wait for Play Store to propagate the update (can take 2-3 hours)
-
-### Mock Mode Not Working
-
-- Ensure `enableMockMode()` is called before `checkForUpdate()`
-- Use `resetCheckState()` if you need to re-check for updates
-- Check console logs for debug output
+- **ERROR_APP_NOT_OWNED**: App not installed from Play Store (sideloaded or debug APK)
+- **No update available**: Version code not higher than installed version
+- **Wait time**: Play Store may take 2-3 hours to recognize new version
 
 ### Update Fails
 
 - Check internet connectivity
 - Verify Play Store is installed and updated
-- Ensure sufficient storage space on device
-- Check Play Developer Console for any app suspension
+- Ensure sufficient storage space
+- Check Play Developer Console for app status
+
+### Debug Logs
+
+The service logs all update checks:
+
+```
+AppUpdateService: Calling InAppUpdate.checkForUpdate()...
+AppUpdateService: Update availability = UpdateAvailability.updateAvailable
+AppUpdateService: Immediate update allowed = true/false
+AppUpdateService: Flexible update allowed = true/false
+AppUpdateService: Starting immediate/flexible update flow
+```
 
 ## Additional Resources
 
 - [Google Play In-App Updates Documentation](https://developer.android.com/guide/playcore/in-app-updates)
 - [in_app_update Flutter Package](https://pub.dev/packages/in_app_update)
-- See `lib/core/network/app_update_integration_example.dart` for complete integration example
+- [Play Console Internal Testing](https://support.google.com/googleplay/android-developer/answer/9303479)

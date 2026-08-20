@@ -20,7 +20,12 @@ class _AppBootstrapState extends State<AppBootstrap> {
   void initState() {
     super.initState();
     InternetService().initialize();
-    AppUpdateService().checkForUpdate();
+    // Check for updates on app start
+    // Immediate updates will start automatically
+    // Flexible updates will return update info for UI handling
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppUpdateService().checkForUpdate();
+    });
   }
 
   @override

@@ -38,4 +38,7 @@ class AppColors {
   // Semantic Colors
   static const Color success500 = Color(0xFF16A34A); // green — verified, safety
   static const Color warning500 = Color(0xFFF59E0B); // amber — badges, ratings
+  static const Color error500 = Color(
+    0xFFDC2626,
+  ); // red — error, destructive actions
 }

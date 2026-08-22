@@ -59,3 +59,19 @@ service.checkForUpdate();
 ```
 
 See `lib/core/network/app_update_integration_example.dart` for more details.
+
+
+3 actions recommended
+Edge-to-edge may not display for all users
+
+User experience
+Release name: 1.3.1
+Your app uses deprecated APIs or parameters for edge-to-edge
+
+User experience
+Release name: 1.3.1
+Improve your app's memory and performance with R8 optimization
+
+Technical quality
+Release name: 1.3.1
+

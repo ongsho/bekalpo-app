@@ -4,6 +4,7 @@ import '../../features/bottom_nav/presentation/screens/main_nav_screen.dart';
 import '../../features/post_preview/presentation/screens/post_preview_screen.dart';
 import '../../features/search/presentation/screens/search_results_screen.dart';
 import '../../features/search/presentation/screens/search_screen.dart';
+import '../../features/my_posts/presentation/screens/my_posts_screen.dart';
 
 class AppRoutes {
   static const String home = "/";
@@ -12,6 +13,7 @@ class AppRoutes {
   static const String searchResults = "/search/results";
   static const String categoryHierarchy = "/category-hierarchy";
   static const String locationHierarchy = "/location-hierarchy";
+  static const String myPosts = "/my-posts";
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -48,6 +50,9 @@ class AppRoutes {
       //   return MaterialPageRoute(
       //     builder: (_) => const LocationHierarchyScreen(),
       //   );
+
+      case myPosts:
+        return MaterialPageRoute(builder: (_) => const MyPostsScreen());
 
       default:
         return MaterialPageRoute(

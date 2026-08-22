@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/providers/post_provider.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/mappers/post_mapper.dart';
 import '../../../auth/presentation/screens/auth_entry_screen.dart';
+import '../../../../features/shared/presentation/widgets/theme_selector_sheet.dart';
+import '../../../../features/home/presentation/widgets/ad_card.dart';
+import '../../../../features/home/data/models/ad_model.dart';
+import '../../../../app/router/app_routes.dart';
 
 class ProfileMenuItem {
   final IconData icon;
@@ -142,24 +149,8 @@ class _GuestProfile extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _AuthMenuSection(
-                            title: "Account",
-                            requiresAuth: true,
-                            items: [
-                              ProfileMenuItem(
-                                icon: Icons.account_circle_outlined,
-                                label: "My Account",
-                                requiresAuth: true,
-                                onTap: () {},
-                              ),
-                              ProfileMenuItem(
-                                icon: Icons.post_add,
-                                label: "My Post",
-                                requiresAuth: true,
-                                onTap: () {},
-                              ),
-                            ],
-                          ),
+                          SizedBox(height: 32),
+                          _MyPostsPreview(),
                           Divider(
                             color: Theme.of(
                               context,
@@ -167,7 +158,7 @@ class _GuestProfile extends StatelessWidget {
                             height: 32,
                           ),
                           _AuthMenuSection(
-                            title: "Settings",
+                            title: "Profile Settings",
                             requiresAuth: true,
                             items: [
                               ProfileMenuItem(
@@ -182,7 +173,35 @@ class _GuestProfile extends StatelessWidget {
                                 requiresAuth: true,
                                 onTap: () {},
                               ),
+                              ProfileMenuItem(
+                                icon: Icons.edit,
+                                label: "Profile Edit",
+                                requiresAuth: true,
+                                onTap: () {},
+                              ),
                             ],
+                          ),
+                          Divider(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.1),
+                            height: 32,
+                          ),
+                          _AuthMenuSection(
+                            title: "App Settings",
+                            items: [
+                              ProfileMenuItem(
+                                icon: Icons.palette_outlined,
+                                label: "Theme",
+                                onTap: () => ThemeSelectorSheet.show(context),
+                              ),
+                            ],
+                          ),
+                          Divider(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.1),
+                            height: 32,
                           ),
                           _AuthMenuSection(
                             title: "Support & Help",
@@ -256,17 +275,7 @@ class _GuestProfile extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          Center(
-                            child: Text(
-                              "App version 003",
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.5),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
+                          _AppVersion(),
                           const SizedBox(height: 12),
                         ],
                       ),
@@ -335,24 +344,8 @@ class _LoggedInProfile extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _AuthMenuSection(
-                            title: "Account",
-                            requiresAuth: true,
-                            items: [
-                              ProfileMenuItem(
-                                icon: Icons.account_circle_outlined,
-                                label: "My Account",
-                                requiresAuth: true,
-                                onTap: () {},
-                              ),
-                              ProfileMenuItem(
-                                icon: Icons.post_add,
-                                label: "My Post",
-                                requiresAuth: true,
-                                onTap: () {},
-                              ),
-                            ],
-                          ),
+                          SizedBox(height: 32),
+                          _MyPostsPreview(),
                           Divider(
                             color: Theme.of(
                               context,
@@ -360,7 +353,7 @@ class _LoggedInProfile extends ConsumerWidget {
                             height: 32,
                           ),
                           _AuthMenuSection(
-                            title: "Settings",
+                            title: "Profile Settings",
                             requiresAuth: true,
                             items: [
                               ProfileMenuItem(
@@ -374,6 +367,28 @@ class _LoggedInProfile extends ConsumerWidget {
                                 label: "Security",
                                 requiresAuth: true,
                                 onTap: () {},
+                              ),
+                              ProfileMenuItem(
+                                icon: Icons.edit,
+                                label: "Profile Edit",
+                                requiresAuth: true,
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
+                          Divider(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.1),
+                            height: 32,
+                          ),
+                          _AuthMenuSection(
+                            title: "App Settings",
+                            items: [
+                              ProfileMenuItem(
+                                icon: Icons.palette_outlined,
+                                label: "Theme",
+                                onTap: () => ThemeSelectorSheet.show(context),
                               ),
                             ],
                           ),
@@ -471,17 +486,7 @@ class _LoggedInProfile extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          Center(
-                            child: Text(
-                              "App version 003",
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.5),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
+                          _AppVersion(),
                           const SizedBox(height: 12),
                         ],
                       ),
@@ -805,7 +810,7 @@ class _SectionTitle extends StatelessWidget {
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
       ),
     );
   }
@@ -871,6 +876,189 @@ class _MenuSection extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+class _MyPostsPreview extends ConsumerWidget {
+  const _MyPostsPreview();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+
+    if (!authState.isLoggedIn) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(title: "My Posts"),
+        const SizedBox(height: 8),
+        RefreshIndicator(
+          onRefresh: () => ref.read(myPostsPreviewProvider.notifier).refresh(),
+          child: _MyPostsContent(),
+        ),
+      ],
+    );
+  }
+}
+
+class _MyPostsContent extends ConsumerWidget {
+  const _MyPostsContent();
+
+  void _onAdTap(AdModel ad, BuildContext context) {
+    if (ad.slug.isNotEmpty) {
+      Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This ad is unavailable right now')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final myPostsPreviewAsync = ref.watch(myPostsPreviewProvider);
+
+    return myPostsPreviewAsync.when(
+      loading: () => _SkeletonLoader(),
+      error: (error, stack) => const SizedBox.shrink(),
+      data: (previewState) {
+        if (previewState.posts.isEmpty) {
+          return const SizedBox(height: 100);
+        }
+
+        final ads = previewState.posts.map((post) => post.toAdModel()).toList();
+
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.72,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: ads.length,
+                itemBuilder: (context, index) {
+                  return RepaintBoundary(
+                    child: AdCard(
+                      ad: ads[index],
+                      onTap: () => _onAdTap(ads[index], context),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () => Navigator.pushNamed(context, AppRoutes.myPosts),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'See More',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SkeletonLoader extends StatelessWidget {
+  const _SkeletonLoader();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.72,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: 2,
+        itemBuilder: (context, index) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(8),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AppVersion extends ConsumerStatefulWidget {
+  const _AppVersion();
+
+  @override
+  ConsumerState<_AppVersion> createState() => _AppVersionState();
+}
+
+class _AppVersionState extends ConsumerState<_AppVersion> {
+  String _appVersion = 'Loading...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      setState(() {
+        _appVersion = 'App version ${packageInfo.version}';
+      });
+    } catch (e) {
+      setState(() {
+        _appVersion = 'App version unknown';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        _appVersion,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          fontSize: 12,
+        ),
       ),
     );
   }

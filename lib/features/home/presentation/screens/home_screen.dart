@@ -13,7 +13,6 @@ import '../../../../core/providers/post_provider.dart';
 import '../../../../core/providers/category_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../../features/shared/presentation/widgets/theme_selector_sheet.dart';
 import '../../../../features/bottom_nav/presentation/providers/nav_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -130,12 +129,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // TEMPORARY: theme switcher FAB — পরে সরিয়ে দেওয়া হবে
-      floatingActionButton: FloatingActionButton.small(
-        onPressed: () => ThemeSelectorSheet.show(context),
-        tooltip: 'Change theme',
-        child: const Icon(Icons.palette_outlined),
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           await ref.read(postsProvider.notifier).refresh();

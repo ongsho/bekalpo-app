@@ -250,4 +250,33 @@ class PostRepository {
       throw Exception('Failed to search posts: $e');
     }
   }
+
+  // ── Get my posts (requires authentication) ───────────────────────────────────
+  Future<ApiListResponse<Post>> getMyPosts({
+    int page = 1,
+    int perPage = 10,
+  }) async {
+    try {
+      final response = await _apiClient.get(
+        'posts',
+        queryParameters: {
+          'my_posts': 'true',
+          'page': page,
+          'per_page': perPage,
+        },
+      );
+
+      return ResponseParser.parseList<Post>(
+        response.data,
+        (json) => Post.fromJson(json),
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Failed to load my posts: $e',
+        originalError: e,
+      );
+    }
+  }
 }

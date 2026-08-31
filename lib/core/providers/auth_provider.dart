@@ -154,6 +154,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     print('AuthNotifier: Auth state reset: isLoggedIn=false');
   }
+
+  void updateProfile({String? userName, String? avatar}) async {
+    print('AuthNotifier: Update profile called');
+
+    // Update profile data in shared preferences (without touching token)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (userName != null) {
+        await prefs.setString('user_name', userName);
+        print('AuthNotifier: User name updated in SharedPreferences');
+      }
+      if (avatar != null) {
+        await prefs.setString('user_avatar', avatar);
+        print('AuthNotifier: Avatar updated in SharedPreferences');
+      }
+      print('AuthNotifier: Profile data updated successfully');
+    } catch (e) {
+      print('AuthNotifier: Error updating profile data: $e');
+    }
+
+    state = state.copyWith(
+      userName: userName ?? state.userName,
+      avatar: avatar ?? state.avatar,
+    );
+
+    print('AuthNotifier: Auth state profile updated');
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {

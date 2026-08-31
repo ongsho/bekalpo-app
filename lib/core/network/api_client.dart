@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../network/exceptions/api_exception.dart';
@@ -350,6 +351,34 @@ class ApiClient {
       cancelToken: cancelToken,
       onSendProgress: onSendProgress,
       onReceiveProgress: onReceiveProgress,
+    );
+  }
+
+  Future<Response> uploadFile(
+    String path, {
+    required File file,
+    String? fileName,
+    Map<String, dynamic>? formData,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+  }) async {
+    final multipartFile = await MultipartFile.fromFile(
+      file.path,
+      filename: fileName ?? file.path.split('/').last,
+    );
+
+    final formDataMap = FormData.fromMap({
+      'avatar': multipartFile,
+      ...?formData,
+    });
+
+    return _dio.post(
+      path,
+      data: formDataMap,
+      options: options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
     );
   }
 }

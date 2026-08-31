@@ -162,6 +162,15 @@ class _GuestProfile extends StatelessWidget {
                             requiresAuth: true,
                             items: [
                               ProfileMenuItem(
+                                icon: Icons.edit,
+                                label: "Profile Edit",
+                                requiresAuth: true,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.profileEdit,
+                                ),
+                              ),
+                              ProfileMenuItem(
                                 icon: Icons.location_on_outlined,
                                 label: "Address",
                                 requiresAuth: true,
@@ -170,12 +179,6 @@ class _GuestProfile extends StatelessWidget {
                               ProfileMenuItem(
                                 icon: Icons.security_outlined,
                                 label: "Security",
-                                requiresAuth: true,
-                                onTap: () {},
-                              ),
-                              ProfileMenuItem(
-                                icon: Icons.edit,
-                                label: "Profile Edit",
                                 requiresAuth: true,
                                 onTap: () {},
                               ),
@@ -357,6 +360,15 @@ class _LoggedInProfile extends ConsumerWidget {
                             requiresAuth: true,
                             items: [
                               ProfileMenuItem(
+                                icon: Icons.edit,
+                                label: "Profile Edit",
+                                requiresAuth: true,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.profileEdit,
+                                ),
+                              ),
+                              ProfileMenuItem(
                                 icon: Icons.location_on_outlined,
                                 label: "Address",
                                 requiresAuth: true,
@@ -365,12 +377,6 @@ class _LoggedInProfile extends ConsumerWidget {
                               ProfileMenuItem(
                                 icon: Icons.security_outlined,
                                 label: "Security",
-                                requiresAuth: true,
-                                onTap: () {},
-                              ),
-                              ProfileMenuItem(
-                                icon: Icons.edit,
-                                label: "Profile Edit",
                                 requiresAuth: true,
                                 onTap: () {},
                               ),

@@ -1,3 +1,4 @@
-New Features: My Posts functionality, MyPostsScreen, profile preview section
+New Features: My Posts functionality, MyPostsScreen, profile preview section, Profile Edit with avatar upload
 UI Improvements: Menu reorganization, skeleton loader, pull-to-refresh
+Bug Fixes: Fixed profile fields being empty after update, fixed avatar URL parsing
 Technical: Dynamic app version, API optimization

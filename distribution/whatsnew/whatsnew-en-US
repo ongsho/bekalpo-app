@@ -1,4 +1,4 @@
-New Features: My Posts functionality, MyPostsScreen, profile preview section, Profile Edit with avatar upload
-UI Improvements: Menu reorganization, skeleton loader, pull-to-refresh
-Bug Fixes: Fixed profile fields being empty after update, fixed avatar URL parsing
-Technical: Dynamic app version, API optimization
+New Features: Location selector with cascading division/district/area picker, category tap navigation to search results, location-based search filtering, in-place location change in search results
+UI Improvements: Location selector bottom sheet, search results with category/location filters, improved page titles with filter names
+Bug Fixes: Fixed LateInitializationError in search results, location persistence across app sessions
+Technical: SearchFilters model with category/location names, flexible router arguments for search results

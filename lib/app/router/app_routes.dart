@@ -36,9 +36,15 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const SearchScreen());
 
       case searchResults:
-        final query = settings.arguments as String?;
+        final searchParams = settings.arguments;
+        // Handle both String (legacy from search screen) and SearchFilters (new from category/location)
+        if (searchParams == null) {
+          return MaterialPageRoute(
+            builder: (_) => SearchResultsScreen(searchParams: ''),
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => SearchResultsScreen(query: query ?? ''),
+          builder: (_) => SearchResultsScreen(searchParams: searchParams),
         );
 
       // case categoryHierarchy:

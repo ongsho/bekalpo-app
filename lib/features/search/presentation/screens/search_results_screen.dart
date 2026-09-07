@@ -2,16 +2,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/search_provider.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/widgets/ad_card.dart';
+import '../../../home/presentation/widgets/location_selector_bottom_sheet.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../shared/presentation/widgets/connectivity_wrapper.dart';
 
 class SearchResultsScreen extends ConsumerStatefulWidget {
-  final String query;
-  const SearchResultsScreen({super.key, required this.query});
+  final dynamic searchParams; // Can be String (query) or SearchFilters
+  const SearchResultsScreen({super.key, required this.searchParams});
 
   @override
   ConsumerState<SearchResultsScreen> createState() =>
@@ -19,14 +21,21 @@ class SearchResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
-  late final SearchFilters _filters;
+  late SearchFilters _filters;
   late final ScrollController _scrollController;
   bool _isLoadMoreTriggered = false;
 
   @override
   void initState() {
     super.initState();
-    _filters = SearchFilters(search: widget.query);
+    // Handle both String (legacy) and SearchFilters (new) arguments
+    if (widget.searchParams is SearchFilters) {
+      _filters = widget.searchParams as SearchFilters;
+    } else if (widget.searchParams is String) {
+      _filters = SearchFilters(search: widget.searchParams as String);
+    } else {
+      _filters = SearchFilters(search: '');
+    }
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
   }
@@ -56,6 +65,27 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   void _onAdTap(AdModel ad) {
     if (ad.slug.isNotEmpty) {
       Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
+    }
+  }
+
+  Future<void> _onChangeLocation() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const LocationSelectorBottomSheet(),
+    );
+
+    if (result == true && mounted) {
+      final locationState = ref.read(locationProvider);
+      if (locationState.selectedArea?.id != null) {
+        setState(() {
+          _filters = _filters.copyWith(
+            location: locationState.selectedArea!.id.toString(),
+            locationName: locationState.selectedArea!.nameEn,
+          );
+        });
+      }
     }
   }
 
@@ -90,7 +120,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   // ── Title ───────────────────────────────────────────
                   Expanded(
                     child: Text(
-                      'Results for "${widget.query}"',
+                      _buildTitle(),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -100,6 +130,14 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  // ── Location change button ─────────────────────────
+                  if (_filters.location != null)
+                    IconButton(
+                      icon: const Icon(Icons.location_on, size: 20),
+                      color: Colors.white,
+                      onPressed: _onChangeLocation,
+                      tooltip: 'Change location',
+                    ),
                 ],
               ),
             ),
@@ -109,6 +147,22 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         ),
       ),
     );
+  }
+
+  String _buildTitle() {
+    if (_filters.search.isNotEmpty) {
+      return 'Results for "${_filters.search}"';
+    } else if (_filters.categoryName != null) {
+      return 'Category: ${_filters.categoryName}';
+    } else if (_filters.locationName != null) {
+      return 'Location: ${_filters.locationName}';
+    } else if (_filters.category != null) {
+      return 'Category: ${_filters.category}';
+    } else if (_filters.location != null) {
+      return 'Location: ${_filters.location}';
+    } else {
+      return 'Search Results';
+    }
   }
 
   void _handleBack() {
@@ -150,7 +204,9 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           children: [
             Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: 8),
-            Text('No results for "${widget.query}"'),
+            Text(
+              'No results${_filters.search.isNotEmpty ? ' for "${_filters.search}"' : ''}',
+            ),
           ],
         ),
       );

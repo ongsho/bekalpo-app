@@ -7,7 +7,9 @@ import 'post_provider.dart';
 class SearchFilters {
   final String search;
   final String? category;
+  final String? categoryName;
   final String? location;
+  final String? locationName;
   final String? brand;
   final String? model;
   final String order;
@@ -16,7 +18,9 @@ class SearchFilters {
   SearchFilters({
     this.search = '',
     this.category,
+    this.categoryName,
     this.location,
+    this.locationName,
     this.brand,
     this.model,
     this.order = 'desc',
@@ -26,7 +30,9 @@ class SearchFilters {
   SearchFilters copyWith({
     String? search,
     String? category,
+    String? categoryName,
     String? location,
+    String? locationName,
     String? brand,
     String? model,
     String? order,
@@ -35,7 +41,9 @@ class SearchFilters {
     return SearchFilters(
       search: search ?? this.search,
       category: category ?? this.category,
+      categoryName: categoryName ?? this.categoryName,
       location: location ?? this.location,
+      locationName: locationName ?? this.locationName,
       brand: brand ?? this.brand,
       model: model ?? this.model,
       order: order ?? this.order,

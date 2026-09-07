@@ -15,11 +15,18 @@ class PostRepository {
   Future<ApiListResponse<Post>> getPosts({
     int page = 1,
     int perPage = 10,
+    int? thanaId,
   }) async {
     try {
+      final queryParams = <String, dynamic>{'page': page, 'per_page': perPage};
+
+      if (thanaId != null) {
+        queryParams['thana_id'] = thanaId;
+      }
+
       final response = await _apiClient.get(
         'posts',
-        queryParameters: {'page': page, 'per_page': perPage},
+        queryParameters: queryParams,
       );
 
       return ResponseParser.parseList<Post>(

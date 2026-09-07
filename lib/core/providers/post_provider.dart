@@ -54,6 +54,7 @@ class PostsState {
   final bool isLoadingMore;
   final bool hasMore;
   final String? error;
+  final int? thanaId;
 
   /// True when showing disk-cached data because the network fetch failed
   final bool isShowingCachedData;
@@ -64,6 +65,7 @@ class PostsState {
     this.isLoadingMore = false,
     this.hasMore = true,
     this.error,
+    this.thanaId,
     this.isShowingCachedData = false,
   });
 
@@ -73,6 +75,7 @@ class PostsState {
     bool? isLoadingMore,
     bool? hasMore,
     String? error,
+    int? thanaId,
     bool? isShowingCachedData,
   }) {
     return PostsState(
@@ -81,6 +84,7 @@ class PostsState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
       error: error,
+      thanaId: thanaId ?? this.thanaId,
       isShowingCachedData: isShowingCachedData ?? this.isShowingCachedData,
     );
   }
@@ -96,7 +100,12 @@ class PostsNotifier extends AsyncNotifier<PostsState> {
     // Then load data in background
     Future.microtask(() async {
       try {
-        final result = await _fetchPage(1, existing: []);
+        final current = state.valueOrNull;
+        final result = await _fetchPage(
+          1,
+          existing: [],
+          thanaId: current?.thanaId,
+        );
         // Cache all posts for offline fallback
         await _writePostCache(result.posts);
         state = AsyncData(result);
@@ -122,12 +131,25 @@ class PostsNotifier extends AsyncNotifier<PostsState> {
     return PostsState(posts: [], currentPage: 1, hasMore: true);
   }
 
+  void updateLocation(int? thanaId) {
+    final current = state.valueOrNull;
+    if (current != null) {
+      state = AsyncData(current.copyWith(thanaId: thanaId));
+      refresh();
+    }
+  }
+
   Future<PostsState> _fetchPage(
     int page, {
     required List<Post> existing,
+    int? thanaId,
   }) async {
     final repo = ref.read(postRepositoryProvider);
-    final response = await repo.getPosts(page: page, perPage: _perPage);
+    final response = await repo.getPosts(
+      page: page,
+      perPage: _perPage,
+      thanaId: thanaId,
+    );
 
     if (!response.isSuccess) {
       throw Exception(response.message ?? 'Failed to load posts');
@@ -138,6 +160,7 @@ class PostsNotifier extends AsyncNotifier<PostsState> {
       posts: [...existing, ...newPosts],
       currentPage: page,
       isLoadingMore: false,
+      thanaId: thanaId,
       hasMore: response.pagination?.hasNextPage ?? newPosts.length >= _perPage,
     );
   }
@@ -153,6 +176,7 @@ class PostsNotifier extends AsyncNotifier<PostsState> {
       final next = await _fetchPage(
         current.currentPage + 1,
         existing: current.posts,
+        thanaId: current.thanaId,
       );
       // Update cache with all loaded posts
       await _writePostCache(next.posts);
@@ -165,9 +189,14 @@ class PostsNotifier extends AsyncNotifier<PostsState> {
   }
 
   Future<void> refresh() async {
+    final current = state.valueOrNull;
     state = const AsyncLoading();
     try {
-      final fresh = await _fetchPage(1, existing: []);
+      final fresh = await _fetchPage(
+        1,
+        existing: [],
+        thanaId: current?.thanaId,
+      );
       // Update cache with all loaded posts
       await _writePostCache(fresh.posts);
       state = AsyncData(fresh);

@@ -7,10 +7,13 @@ import '../widgets/category_grid_skeleton.dart';
 import '../widgets/ad_card.dart';
 import '../widgets/ad_card_skeleton.dart';
 import '../widgets/section_header.dart';
+import '../widgets/location_selector_bottom_sheet.dart';
 import '../../data/models/ad_model.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/providers/category_provider.dart';
+import '../../../../core/providers/location_provider.dart';
+import '../../../../core/providers/search_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../features/bottom_nav/presentation/providers/nav_provider.dart';
@@ -37,6 +40,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
+
+    // Load persisted location on initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locationState = ref.read(locationProvider);
+      if (locationState.locationDisplayName != null && mounted) {
+        setState(() {
+          _location = locationState.locationDisplayName!;
+        });
+
+        // Apply location filter to posts
+        if (locationState.selectedArea?.id != null) {
+          ref
+              .read(postsProvider.notifier)
+              .updateLocation(locationState.selectedArea!.id);
+        }
+      }
+    });
   }
 
   void _onScroll() {
@@ -74,18 +94,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // if the hierarchy screen returns one (kept generic — adjust return type to
   // whatever your locationHierarchy screen actually returns, e.g. a String or a Location object)
   void _onCategoryTap(Category cat) {
-    Navigator.pushNamed(context, AppRoutes.categoryHierarchy, arguments: cat);
+    Navigator.pushNamed(
+      context,
+      AppRoutes.searchResults,
+      arguments: SearchFilters(
+        search: '',
+        category: cat.id.toString(),
+        categoryName: cat.nameEn,
+      ),
+    );
   }
 
   Future<void> _onLocationTap() async {
-    final result = await Navigator.pushNamed(
-      context,
-      AppRoutes.locationHierarchy,
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const LocationSelectorBottomSheet(),
     );
-    if (result != null && result is String && mounted) {
-      setState(() {
-        _location = result;
-      });
+
+    if (result == true && mounted) {
+      final locationState = ref.read(locationProvider);
+      if (locationState.locationDisplayName != null) {
+        setState(() {
+          _location = locationState.locationDisplayName!;
+        });
+
+        // Update posts provider with selected location (for home page)
+        if (locationState.selectedArea?.id != null) {
+          ref
+              .read(postsProvider.notifier)
+              .updateLocation(locationState.selectedArea!.id);
+        } else {
+          ref.read(postsProvider.notifier).updateLocation(null);
+        }
+
+        // Navigate to search results with location filter
+        if (locationState.selectedArea?.id != null) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.searchResults,
+            arguments: SearchFilters(
+              search: '',
+              location: locationState.selectedArea!.id.toString(),
+              locationName: locationState.selectedArea!.nameEn,
+            ),
+          );
+        }
+      }
     }
   }
 

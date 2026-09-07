@@ -1,4 +1,4 @@
-New Features: Location selector with cascading division/district/area picker, category tap navigation to search results, location-based search filtering, in-place location change in search results
-UI Improvements: Location selector bottom sheet, search results with category/location filters, improved page titles with filter names
-Bug Fixes: Fixed LateInitializationError in search results, location persistence across app sessions
-Technical: SearchFilters model with category/location names, flexible router arguments for search results
+New: Location selector with cascading picker, category tap to search results, location-based filtering, in-place location change
+UI: Location selector bottom sheet, search with category/location filters, improved page titles
+Fixes: Fixed search results error, location persistence
+Tech: SearchFilters model, flexible router arguments

@@ -1,32 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
-import '../../../../core/models/division.dart';
-import '../../../../core/models/district.dart';
-import '../../../../core/models/thana.dart';
-import '../../../../core/providers/location_provider.dart';
+import '../../../../core/models/category.dart';
+import '../../../../core/providers/category_provider.dart';
+import '../../../../core/providers/search_provider.dart';
+import '../../../../app/router/app_routes.dart';
 
-class LocationSelectorBottomSheet extends ConsumerStatefulWidget {
-  const LocationSelectorBottomSheet({super.key});
+class CategorySelectorBottomSheet extends ConsumerStatefulWidget {
+  final Function(String categoryId, String categoryName)? onCategorySelected;
+  final Category? initialParentCategory;
+
+  const CategorySelectorBottomSheet({
+    super.key,
+    this.onCategorySelected,
+    this.initialParentCategory,
+  });
 
   @override
-  ConsumerState<LocationSelectorBottomSheet> createState() =>
-      _LocationSelectorBottomSheetState();
+  ConsumerState<CategorySelectorBottomSheet> createState() =>
+      _CategorySelectorBottomSheetState();
 }
 
-class _LocationSelectorBottomSheetState
-    extends ConsumerState<LocationSelectorBottomSheet> {
-  Division? _selectedDivision;
-  District? _selectedDistrict;
-  Thana? _selectedArea;
+class _CategorySelectorBottomSheetState
+    extends ConsumerState<CategorySelectorBottomSheet> {
+  Category? _selectedParent;
+  bool _startedAtStage2 = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If an initial parent is provided, start directly at Stage 2
+    if (widget.initialParentCategory != null) {
+      _selectedParent = widget.initialParentCategory;
+      _startedAtStage2 = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final locationState = ref.watch(locationProvider);
+    final categoriesState = ref.watch(categoriesProvider);
     final theme = Theme.of(context);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: MediaQuery.of(context).size.height * 0.75,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -34,7 +50,7 @@ class _LocationSelectorBottomSheetState
       child: Column(
         children: [
           _buildHeader(theme),
-          Expanded(child: _buildContent(locationState, theme)),
+          Expanded(child: _buildContent(categoriesState, theme)),
         ],
       ),
     );
@@ -61,7 +77,7 @@ class _LocationSelectorBottomSheetState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Select Location',
+                'Select Category',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -92,11 +108,9 @@ class _LocationSelectorBottomSheetState
   Widget _buildSelectionSteps(ThemeData theme) {
     return Row(
       children: [
-        _buildStepIndicator(1, _selectedDivision != null, 'Division', theme),
-        _buildStepConnector(_selectedDivision != null, theme),
-        _buildStepIndicator(2, _selectedDistrict != null, 'District', theme),
-        _buildStepConnector(_selectedDistrict != null, theme),
-        _buildStepIndicator(3, _selectedArea != null, 'Area', theme),
+        _buildStepIndicator(1, _selectedParent != null, 'Parent', theme),
+        _buildStepConnector(_selectedParent != null, theme),
+        _buildStepIndicator(2, false, 'Child', theme),
       ],
     );
   }
@@ -152,67 +166,108 @@ class _LocationSelectorBottomSheetState
     );
   }
 
-  Widget _buildContent(LocationState locationState, ThemeData theme) {
-    if (locationState.isLoading) {
+  Widget _buildContent(
+    AsyncValue<List<Category>> categoriesState,
+    ThemeData theme,
+  ) {
+    if (categoriesState.isLoading) {
       return Center(
         child: CircularProgressIndicator(color: theme.colorScheme.primary),
       );
     }
 
-    if (locationState.error != null) {
-      return _buildErrorState(locationState.error!, () {
-        ref.read(locationProvider.notifier).refreshLocations();
-      }, theme);
+    if (categoriesState.hasError) {
+      return _buildErrorState(
+        'Failed to load categories',
+        () => ref.read(categoriesProvider.notifier).refresh(),
+        theme,
+      );
     }
 
-    if (_selectedDivision == null) {
-      return _buildDivisionList(locationState.allDivisions, theme);
-    } else if (_selectedDistrict == null) {
-      return _buildDistrictList(theme);
+    final categories = categoriesState.value ?? [];
+
+    if (_selectedParent == null) {
+      return _buildParentList(categories, theme);
     } else {
-      return _buildAreaList(theme);
+      return _buildChildList(theme);
     }
   }
 
-  Widget _buildDivisionList(List<Division> divisions, ThemeData theme) {
-    if (divisions.isEmpty) {
-      return _buildEmptyState('No divisions available', theme);
+  Widget _buildParentList(List<Category> categories, ThemeData theme) {
+    if (categories.isEmpty) {
+      return _buildEmptyState('No categories available', theme);
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: divisions.length,
+      itemCount: categories.length,
       itemBuilder: (context, index) {
-        final division = divisions[index];
-        return _buildDivisionTile(division, theme);
+        final category = categories[index];
+        return _buildParentTile(category, theme);
       },
     );
   }
 
-  Widget _buildDivisionTile(Division division, ThemeData theme) {
+  Widget _buildParentTile(Category category, ThemeData theme) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
           HapticFeedback.lightImpact();
           setState(() {
-            _selectedDivision = division;
-            _selectedDistrict = null;
-            _selectedArea = null;
+            _selectedParent = category;
           });
         },
         splashColor: theme.colorScheme.primary.withOpacity(0.15),
         highlightColor: theme.colorScheme.primary.withOpacity(0.1),
         child: ListTile(
+          leading: category.image != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    category.image!,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.category,
+                          size: 24,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                      );
+                    },
+                  ),
+                )
+              : Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.category,
+                    size: 24,
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
           title: Text(
-            division.nameEn ?? '',
+            category.nameEn ?? '',
             style: TextStyle(
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurface,
             ),
           ),
-          subtitle: division.nameBn != null
+          subtitle: category.nameBn != null
               ? Text(
-                  division.nameBn!,
+                  category.nameBn!,
                   style: TextStyle(
                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
@@ -227,145 +282,109 @@ class _LocationSelectorBottomSheetState
     );
   }
 
-  Widget _buildDistrictList(ThemeData theme) {
-    if (_selectedDivision?.districts == null ||
-        _selectedDivision!.districts!.isEmpty) {
-      return _buildEmptyState('No districts available', theme);
+  Widget _buildChildList(ThemeData theme) {
+    final children = _selectedParent?.children ?? [];
+
+    if (children.isEmpty) {
+      return _buildEmptyState('No subcategories available', theme);
     }
+
     return Column(
       children: [
         _buildBackButton(
           () {
-            setState(() {
-              _selectedDivision = null;
-              _selectedDistrict = null;
-              _selectedArea = null;
-            });
-          },
-          _selectedDivision?.nameEn ?? '',
-          theme,
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: _selectedDivision!.districts!.length,
-            itemBuilder: (context, index) {
-              final district = _selectedDivision!.districts![index];
-              return _buildDistrictTile(district, theme);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDistrictTile(District district, ThemeData theme) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          setState(() {
-            _selectedDistrict = district;
-            _selectedArea = null;
-          });
-        },
-        splashColor: theme.colorScheme.primary.withOpacity(0.15),
-        highlightColor: theme.colorScheme.primary.withOpacity(0.1),
-        child: ListTile(
-          title: Text(
-            district.nameEn ?? '',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          subtitle: district.nameBn != null
-              ? Text(
-                  district.nameBn!,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                )
-              : null,
-          trailing: Icon(
-            Icons.chevron_right,
-            color: theme.colorScheme.onSurface.withOpacity(0.4),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAreaList(ThemeData theme) {
-    if (_selectedDistrict?.thanas == null ||
-        _selectedDistrict!.thanas!.isEmpty) {
-      return _buildEmptyState('No areas available', theme);
-    }
-    return Column(
-      children: [
-        _buildBackButton(
-          () {
-            setState(() {
-              _selectedDistrict = null;
-              _selectedArea = null;
-            });
-          },
-          _selectedDistrict?.nameEn ?? '',
-          theme,
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: _selectedDistrict!.thanas!.length,
-            itemBuilder: (context, index) {
-              final area = _selectedDistrict!.thanas![index];
-              return _buildAreaTile(area, theme);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAreaTile(Thana area, ThemeData theme) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          HapticFeedback.mediumImpact();
-          if (_selectedDivision != null && _selectedDistrict != null) {
-            await ref
-                .read(locationProvider.notifier)
-                .saveLocation(
-                  division: _selectedDivision!,
-                  district: _selectedDistrict!,
-                  area: area,
-                );
-            if (mounted) {
-              Navigator.pop(context, true);
+            if (_startedAtStage2) {
+              // If we started at Stage 2, close the sheet instead of going to Stage 1
+              Navigator.pop(context);
+            } else {
+              // Normal back to Stage 1
+              setState(() {
+                _selectedParent = null;
+              });
             }
+          },
+          _selectedParent?.nameEn ?? '',
+          theme,
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            itemCount: children.length,
+            itemBuilder: (context, index) {
+              final child = children[index];
+              return _buildChildTile(child, theme);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChildTile(Category child, ThemeData theme) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          Navigator.pop(context);
+          if (widget.onCategorySelected != null) {
+            widget.onCategorySelected!(child.id.toString(), child.nameEn ?? '');
+          } else {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.searchResults,
+              arguments: SearchFilters(
+                search: '',
+                category: child.id.toString(),
+                categoryName: child.nameEn,
+              ),
+            );
           }
         },
         splashColor: theme.colorScheme.primary.withOpacity(0.15),
         highlightColor: theme.colorScheme.primary.withOpacity(0.1),
         child: ListTile(
           title: Text(
-            area.nameEn ?? '',
+            child.nameEn ?? '',
             style: TextStyle(
               fontWeight: FontWeight.w500,
               color: theme.colorScheme.onSurface,
             ),
           ),
-          subtitle: area.nameBn != null
+          subtitle: child.nameBn != null
               ? Text(
-                  area.nameBn!,
+                  child.nameBn!,
                   style: TextStyle(
                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                   ),
                 )
               : null,
-          trailing: Icon(Icons.check_circle, color: theme.colorScheme.primary),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (child.postCount != null && child.postCount! > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${child.postCount}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              Icon(Icons.check_circle, color: theme.colorScheme.primary),
+            ],
+          ),
         ),
       ),
     );

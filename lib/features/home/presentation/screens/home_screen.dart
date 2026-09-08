@@ -8,6 +8,7 @@ import '../widgets/ad_card.dart';
 import '../widgets/ad_card_skeleton.dart';
 import '../widgets/section_header.dart';
 import '../widgets/location_selector_bottom_sheet.dart';
+import '../widgets/category_selector_bottom_sheet.dart';
 import '../../data/models/ad_model.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/providers/post_provider.dart';
@@ -90,17 +91,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(navIndexProvider.notifier).state = 1;
   }
 
-  // FIX #3: pass the tapped category as arguments, and update local location
-  // if the hierarchy screen returns one (kept generic — adjust return type to
-  // whatever your locationHierarchy screen actually returns, e.g. a String or a Location object)
+  // Category tap opens category selector bottom sheet at Stage 2
+  // (pre-loaded with tapped parent's children, skipping redundant parent selection)
   void _onCategoryTap(Category cat) {
-    Navigator.pushNamed(
-      context,
-      AppRoutes.searchResults,
-      arguments: SearchFilters(
-        search: '',
-        category: cat.id.toString(),
-        categoryName: cat.nameEn,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CategorySelectorBottomSheet(
+        initialParentCategory: cat,
+        onCategorySelected: (categoryId, categoryName) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.searchResults,
+            arguments: SearchFilters(
+              search: '',
+              category: categoryId,
+              categoryName: categoryName,
+            ),
+          );
+        },
       ),
     );
   }
@@ -207,7 +217,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: SectionHeader(
                   title: 'Browse Categories',
                   actionLabel: 'See all',
-                  onAction: () {},
+                  onAction: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => CategorySelectorBottomSheet(
+                        onCategorySelected: (categoryId, categoryName) {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.searchResults,
+                            arguments: SearchFilters(
+                              search: '',
+                              category: categoryId,
+                              categoryName: categoryName,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -267,7 +296,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(
               child: CategoryGrid(
                 categories: categories,
-                // onTap: _onCategoryTap,
+                onTap: _onCategoryTap,
               ),
             ),
           ),

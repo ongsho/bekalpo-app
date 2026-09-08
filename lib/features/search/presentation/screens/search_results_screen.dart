@@ -6,6 +6,7 @@ import '../../../../core/providers/location_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/presentation/widgets/location_selector_bottom_sheet.dart';
+import '../../../home/presentation/widgets/category_selector_bottom_sheet.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../../app/router/app_routes.dart';
@@ -89,6 +90,24 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     }
   }
 
+  Future<void> _onChangeCategory() async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CategorySelectorBottomSheet(
+        onCategorySelected: (categoryId, categoryName) {
+          setState(() {
+            _filters = _filters.copyWith(
+              category: categoryId,
+              categoryName: categoryName,
+            );
+          });
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(searchProvider(_filters));
@@ -137,6 +156,14 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       color: Colors.white,
                       onPressed: _onChangeLocation,
                       tooltip: 'Change location',
+                    ),
+                  // ── Category change button ─────────────────────────
+                  if (_filters.category != null)
+                    IconButton(
+                      icon: const Icon(Icons.category, size: 20),
+                      color: Colors.white,
+                      onPressed: _onChangeCategory,
+                      tooltip: 'Change category',
                     ),
                 ],
               ),

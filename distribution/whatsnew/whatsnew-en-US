@@ -1,4 +1,3 @@
-New: Location selector with cascading picker, category tap to search results, location-based filtering, in-place location change
-UI: Location selector bottom sheet, search with category/location filters, improved page titles
-Fixes: Fixed search results error, location persistence
-Tech: SearchFilters model, flexible router arguments
+New: Category selector with parent/child navigation, haptic feedback, tap highlight colors
+UI: Enhanced bottom sheets with visual feedback, theme-aware colors, direct Stage 2 access
+Features: Category change in search results, home grid integration, "See all categories"

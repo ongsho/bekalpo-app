@@ -20,7 +20,7 @@ class AdCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(10),
-          
+
           // boxShadow: [
           //   BoxShadow(
           //     // withValues replaces deprecated withOpacity
@@ -62,7 +62,7 @@ class AdCard extends StatelessWidget {
                       );
 
                       return CachedNetworkImage(
-                        imageUrl: ad.imageUrl,
+                        imageUrl: ad.imageUrl ?? '',
                         fit: BoxFit.cover,
                         memCacheWidth: decodeWidth,
                         // memCacheHeight: decodeHeight,
@@ -131,7 +131,7 @@ class AdCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    ad.category,
+                    ad.category ?? '',
                     style: TextStyle(
                       fontSize: 10,
                       color: theme.colorScheme.primary,
@@ -140,7 +140,7 @@ class AdCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    ad.title,
+                    ad.title ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -160,7 +160,7 @@ class AdCard extends StatelessWidget {
                       const SizedBox(width: 2),
                       Expanded(
                         child: Text(
-                          ad.location,
+                          ad.location ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -173,7 +173,7 @@ class AdCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    ad.timeAgo,
+                    ad.timeAgo ?? '',
                     style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                   ),
                   const SizedBox(height: 3),

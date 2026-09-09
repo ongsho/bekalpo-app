@@ -64,7 +64,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   }
 
   void _onAdTap(AdModel ad) {
-    if (ad.slug.isNotEmpty) {
+    if (ad.slug?.isNotEmpty == true) {
       Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
     }
   }

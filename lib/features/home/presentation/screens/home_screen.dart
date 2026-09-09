@@ -157,7 +157,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // FIX #5: give feedback instead of silently doing nothing when slug is empty
   void _onAdTap(AdModel ad) {
-    if (ad.slug.isNotEmpty) {
+    if (ad.slug?.isNotEmpty == true) {
       Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

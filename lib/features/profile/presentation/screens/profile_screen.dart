@@ -916,7 +916,7 @@ class _MyPostsContent extends ConsumerWidget {
   const _MyPostsContent();
 
   void _onAdTap(AdModel ad, BuildContext context) {
-    if (ad.slug.isNotEmpty) {
+    if (ad.slug?.isNotEmpty == true) {
       Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

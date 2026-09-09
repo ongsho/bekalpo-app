@@ -71,7 +71,7 @@ extension PostMapper on Post {
     return AdModel(
       id: id ?? 0,
       title: title ?? 'No title',
-      imageUrl: (images != null && images!.isNotEmpty) ? images!.first : '',
+      imageUrl: (images != null && images!.isNotEmpty) ? images!.first : null,
       price: price,
       location: location,
       timeAgo: formattedUpdatedAt,
@@ -79,7 +79,7 @@ extension PostMapper on Post {
       isNew: isRecentlyUpdated,
       views: counter?.views ?? 0,
       likes: 0,
-      slug: slug ?? '',
+      slug: slug,
     );
   }
 

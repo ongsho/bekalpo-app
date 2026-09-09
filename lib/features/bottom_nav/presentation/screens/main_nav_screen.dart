@@ -3,6 +3,7 @@ import 'package:bekalpo/features/bottom_nav/presentation/widgets/bottom_nav_bar.
 import 'package:bekalpo/features/home/presentation/screens/home_screen.dart';
 import 'package:bekalpo/features/search/presentation/screens/search_screen.dart';
 import 'package:bekalpo/features/profile/presentation/screens/profile_screen.dart';
+import 'package:bekalpo/features/post_add/presentation/screens/post_add_screen.dart';
 import 'package:bekalpo/features/shared/presentation/widgets/connectivity_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +20,7 @@ class _MainNavScreenState extends ConsumerState<MainNavScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const SearchScreen(),
-    const _PlaceholderScreen(title: 'Post Ad'),
+    const PostAddScreen(),
     const _PlaceholderScreen(title: 'Messages'),
     const ProfileScreen(),
   ];

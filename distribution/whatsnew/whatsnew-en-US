@@ -1,3 +1,4 @@
-New: Category selector with parent/child navigation, haptic feedback, tap highlight colors
-UI: Enhanced bottom sheets with visual feedback, theme-aware colors, direct Stage 2 access
-Features: Category change in search results, home grid integration, "See all categories"
+New: Post creation flow with dynamic forms based on category
+Auth: Enhanced contact management and phone number support
+UI: Location selector with callback mode for post creation
+Fix: Null safety improvements across ad display components

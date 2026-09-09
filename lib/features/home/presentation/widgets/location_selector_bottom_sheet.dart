@@ -7,7 +7,10 @@ import '../../../../core/models/thana.dart';
 import '../../../../core/providers/location_provider.dart';
 
 class LocationSelectorBottomSheet extends ConsumerStatefulWidget {
-  const LocationSelectorBottomSheet({super.key});
+  final Function(Division division, District district, Thana area)?
+  onLocationSelected;
+
+  const LocationSelectorBottomSheet({super.key, this.onLocationSelected});
 
   @override
   ConsumerState<LocationSelectorBottomSheet> createState() =>
@@ -335,15 +338,28 @@ class _LocationSelectorBottomSheetState
         onTap: () async {
           HapticFeedback.mediumImpact();
           if (_selectedDivision != null && _selectedDistrict != null) {
-            await ref
-                .read(locationProvider.notifier)
-                .saveLocation(
-                  division: _selectedDivision!,
-                  district: _selectedDistrict!,
-                  area: area,
-                );
-            if (mounted) {
-              Navigator.pop(context, true);
+            if (widget.onLocationSelected != null) {
+              // Callback mode - just return the selection
+              widget.onLocationSelected!(
+                _selectedDivision!,
+                _selectedDistrict!,
+                area,
+              );
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            } else {
+              // Original mode - save to provider
+              await ref
+                  .read(locationProvider.notifier)
+                  .saveLocation(
+                    division: _selectedDivision!,
+                    district: _selectedDistrict!,
+                    area: area,
+                  );
+              if (mounted) {
+                Navigator.pop(context, true);
+              }
             }
           }
         },

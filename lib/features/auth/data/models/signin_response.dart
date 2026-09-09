@@ -1,3 +1,5 @@
+import 'package:bekalpo/core/models/contact.dart';
+
 class SigninResponse {
   final dynamic status;
   final String token;
@@ -42,6 +44,7 @@ class UserData {
   final DateTime updatedAt;
   final String username;
   final UserDetail? userDetail;
+  final List<Contact>? contacts;
 
   UserData({
     required this.id,
@@ -58,6 +61,7 @@ class UserData {
     required this.updatedAt,
     required this.username,
     this.userDetail,
+    this.contacts,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -77,6 +81,9 @@ class UserData {
       username: json['username'] ?? '',
       userDetail: json['user_detail'] != null
           ? UserDetail.fromJson(json['user_detail'])
+          : null,
+      contacts: json['contacts'] != null
+          ? (json['contacts'] as List).map((e) => Contact.fromJson(e)).toList()
           : null,
     );
   }

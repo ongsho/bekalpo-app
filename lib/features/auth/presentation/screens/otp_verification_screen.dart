@@ -127,6 +127,14 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen>
               avatar: response.user.avatar,
             );
 
+        // Load user contacts if available
+        if (response.user.contacts != null &&
+            response.user.contacts!.isNotEmpty) {
+          ref
+              .read(authProvider.notifier)
+              .updateUserContacts(response.user.contacts!);
+        }
+
         if (mounted) {
           // Navigate back to profile or home
           Navigator.of(context).popUntil((route) => route.isFirst);

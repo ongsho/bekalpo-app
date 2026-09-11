@@ -1,4 +1,8 @@
 New: Post creation flow with dynamic forms based on category
+Enhanced: Post edit mode with automatic data restoration from API
+Enhanced: Brand and model auto-population in edit mode
+Enhanced: Dynamic field renderer with improved type safety
 Auth: Enhanced contact management and phone number support
 UI: Location selector with callback mode for post creation
 Fix: Null safety improvements across ad display components
+Fix: Backend payload format for brand/model submission

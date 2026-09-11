@@ -68,7 +68,23 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const ProfileEditScreen());
 
       case postAdd:
-        return MaterialPageRoute(builder: (_) => const PostAddScreen());
+        final args = settings.arguments;
+        String? postId;
+        Map<String, dynamic>? initialData;
+        
+        if (args is String) {
+          postId = args;
+        } else if (args is Map<String, dynamic>) {
+          postId = args['postId'] as String?;
+          initialData = args;
+        }
+        
+        return MaterialPageRoute(
+          builder: (_) => PostAddScreen(
+            postId: postId,
+            initialData: initialData,
+          ),
+        );
 
       default:
         return MaterialPageRoute(

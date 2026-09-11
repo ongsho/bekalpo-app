@@ -54,11 +54,79 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
 
   void _onAdTap(AdModel ad) {
     if (ad.slug?.isNotEmpty == true) {
-      Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
+      // Show a dialog to choose between preview and edit
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Choose Action'),
+          content: const Text('What would you like to do with this post?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
+              },
+              child: const Text('Preview'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _navigateToEdit(ad);
+              },
+              child: const Text('Edit'),
+            ),
+          ],
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('This ad is unavailable right now')),
       );
+    }
+  }
+
+  void _navigateToEdit(AdModel ad) {
+    // Get the post data from the provider
+    final myPostsState = ref.read(myPostsProvider).valueOrNull;
+    if (myPostsState != null) {
+      try {
+        final post = myPostsState.posts.firstWhere(
+          (p) => p.slug == ad.slug,
+        );
+        
+        // Prepare initial data for editing
+        final Map<String, dynamic> fieldValuesMap = {};
+        if (post.fieldValues != null) {
+          for (var fv in post.fieldValues!) {
+            if (fv.fieldSlug != null) {
+              fieldValuesMap[fv.fieldSlug!] = fv.value;
+            }
+          }
+        }
+        
+        final initialData = {
+          'postId': post.id != null ? post.id.toString() : '',
+          'category_id': post.categoryId,
+          'category_name': post.category?.nameEn,
+          'thana_id': post.thanaId,
+          'brand_id': post.brandId,
+          'brand_name': post.brand?.nameEn,
+          'model_id': post.modelId,
+          'model_name': post.model?.nameEn,
+          'images': post.images,
+          'field_values': fieldValuesMap,
+        };
+        
+        Navigator.pushNamed(
+          context,
+          AppRoutes.postAdd,
+          arguments: initialData,
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post not found')),
+        );
+      }
     }
   }
 

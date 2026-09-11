@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../network/exceptions/api_exception.dart';
@@ -379,6 +380,77 @@ class ApiClient {
       options: options,
       cancelToken: cancelToken,
       onSendProgress: onSendProgress,
+    );
+  }
+
+  Future<Response> uploadImages(
+    String path, {
+    required List<File> files,
+    Map<String, dynamic>? formData,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+  }) async {
+    final Map<String, dynamic> formDataMap = {};
+
+    // Add multiple files with dynamic keys
+    for (int i = 0; i < files.length; i++) {
+      final multipartFile = await MultipartFile.fromFile(
+        files[i].path,
+        filename: files[i].path.split('/').last,
+      );
+      formDataMap['new_${i}_${DateTime.now().millisecondsSinceEpoch}'] =
+          multipartFile;
+    }
+
+    // Add ordered keys (filter out the orderedKeys itself)
+    final orderedKeys = formDataMap.keys
+        .where((key) => key != 'orderedKeys')
+        .toList();
+    formDataMap['orderedKeys'] = jsonEncode(orderedKeys);
+
+    print('API Client: Upload images with orderedKeys: $orderedKeys');
+    print('API Client: Encoded orderedKeys: ${jsonEncode(orderedKeys)}');
+
+    // Add additional form data
+    if (formData != null) {
+      formDataMap.addAll(formData);
+    }
+
+    return _dio.post(
+      path,
+      data: FormData.fromMap(formDataMap),
+      options: options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+    );
+  }
+
+  Future<Response> reorderImages(
+    String path, {
+    required List<String> imageUrls,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    return _dio.post(
+      path,
+      data: {'orderedKeys': imageUrls},
+      options: options,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<Response> submitPost(
+    String postId, {
+    required Map<String, dynamic> payload,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    return _dio.put(
+      'posts/$postId',
+      data: payload,
+      options: options,
+      cancelToken: cancelToken,
     );
   }
 }

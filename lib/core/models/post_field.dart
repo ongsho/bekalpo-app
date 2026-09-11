@@ -2,7 +2,7 @@ class PostField {
   final int id;
   final String title;
   final String slug;
-  final String type; // radio | select | checkbox | text
+  final String type; // radio | select | checkbox | text | image
   final String? placeholder;
   final PostFieldPivot pivot;
   final List<FieldItem> items;
@@ -25,7 +25,8 @@ class PostField {
       type: json['type'] as String,
       placeholder: json['placeholder'] as String?,
       pivot: PostFieldPivot.fromJson(json['pivot'] as Map<String, dynamic>),
-      items: (json['items'] as List?)
+      items:
+          (json['items'] as List?)
               ?.map((e) => FieldItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -80,11 +81,7 @@ class FieldItem {
   final String nameEn;
   final String nameBn;
 
-  FieldItem({
-    required this.id,
-    required this.nameEn,
-    required this.nameBn,
-  });
+  FieldItem({required this.id, required this.nameEn, required this.nameBn});
 
   factory FieldItem.fromJson(Map<String, dynamic> json) {
     return FieldItem(
@@ -95,10 +92,6 @@ class FieldItem {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name_en': nameEn,
-      'name_bn': nameBn,
-    };
+    return {'id': id, 'name_en': nameEn, 'name_bn': nameBn};
   }
 }

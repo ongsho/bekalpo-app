@@ -1,4 +1,5 @@
 import '../models/post.dart';
+import '../models/field_value.dart';
 import '../../features/home/data/models/ad_model.dart';
 
 /// Shared Post helpers used across features (home, post_preview, etc).
@@ -40,21 +41,33 @@ extension PostMapper on Post {
 
   // ── Price (from dynamic fieldValues) ─────────────────────────────────────
   String get price {
-    final priceField = fieldValues?.cast<dynamic>().firstWhere(
-      (f) => f.fieldSlug == 'price',
-      orElse: () => null,
-    );
-    return priceField?.value?.toString() ?? '0';
+    if (fieldValues == null || fieldValues!.isEmpty) return '0';
+    
+    try {
+      final priceField = fieldValues!.firstWhere(
+        (f) => f.fieldSlug == 'price',
+        orElse: () => FieldValue(fieldSlug: '', value: null),
+      );
+      return priceField.value?.toString() ?? '0';
+    } catch (e) {
+      return '0';
+    }
   }
 
   bool get isPriceNegotiable {
-    final priceTypeField = fieldValues?.cast<dynamic>().firstWhere(
-      (f) => f.fieldSlug == 'price_type',
-      orElse: () => null,
-    );
-    return (priceTypeField?.value ?? '').toString().toLowerCase().contains(
-      'negotiable',
-    );
+    if (fieldValues == null || fieldValues!.isEmpty) return false;
+    
+    try {
+      final priceTypeField = fieldValues!.firstWhere(
+        (f) => f.fieldSlug == 'price_type',
+        orElse: () => FieldValue(fieldSlug: '', value: null),
+      );
+      return (priceTypeField.value ?? '').toString().toLowerCase().contains(
+        'negotiable',
+      );
+    } catch (e) {
+      return false;
+    }
   }
 
   // ── Category path ("Vehicles / Car") ─────────────────────────────────────

@@ -3,24 +3,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/division.dart';
 import '../../../../core/models/district.dart';
 import '../../../../core/models/thana.dart';
-import '../../../../core/models/category.dart';
+
 import '../../../../core/models/post_field.dart';
+import 'dart:io';
 import '../../../../core/models/brand.dart';
 import '../../../../core/models/model.dart';
+import '../../../../core/models/contact.dart';
 import '../../../../core/providers/post_fields_provider.dart';
 import '../../../../core/providers/draft_post_provider.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/providers/brand_provider.dart';
 import '../../../../core/providers/model_provider.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../home/presentation/widgets/location_selector_bottom_sheet.dart';
 import '../../../home/presentation/widgets/category_selector_bottom_sheet.dart';
 import '../widgets/dynamic_field_renderer.dart';
+import '../widgets/image_upload_widget.dart';
 import '../../../auth/presentation/screens/auth_entry_screen.dart';
 import '../../../auth/presentation/screens/phone_add_screen.dart';
 import '../../../bottom_nav/presentation/providers/nav_provider.dart';
+import '../../../../app/router/app_routes.dart';
 
 class PostAddScreen extends ConsumerStatefulWidget {
-  const PostAddScreen({super.key});
+  final String? postId; // Optional: if provided, edit mode
+  final Map<String, dynamic>? initialData; // Optional: initial data for edit
+
+  const PostAddScreen({
+    super.key,
+    this.postId,
+    this.initialData,
+  });
 
   @override
   ConsumerState<PostAddScreen> createState() => _PostAddScreenState();
@@ -40,6 +52,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   // Brand selection state
   Brand? _selectedBrand;
   String? _selectedBrandName;
+  bool _hasBrands = false;
 
   // Model selection state
   ProductModel? _selectedModel;
@@ -49,20 +62,96 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   final Map<String, dynamic> _fieldValues = {};
   final Map<String, String?> _fieldErrors = {};
 
+  // Contact number selection state
+  String? _selectedContactNumber;
+
   // Validation state
   bool _isFormValid = false;
+  bool _hasAttemptedSubmit = false;
 
   // Draft ID tracking
   String? _currentPostId;
 
   // Track if auth check has been done
   bool _hasCheckedAuth = false;
+  
+  // Edit mode tracking
+  bool _isEditMode = false;
+
+  // Image upload state
+  final List<String> _uploadedImages = [];
+  bool _isUploadingImages = false;
+
+  // Submit state
+  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
+    
+    // Check if this is edit mode
+    _isEditMode = widget.postId != null;
+    
+    if (_isEditMode) {
+      // Load existing post data for editing
+      _currentPostId = widget.postId;
+      _loadExistingPostData();
+    }
     // Don't initialize draft in initState to avoid blocking app startup
     // Initialize draft lazily when user interacts with the screen
+  }
+
+  void _loadExistingPostData() {
+    if (widget.initialData == null) {
+      // If no initial data provided, we could fetch from API
+      // For now, we'll just set the draft ID
+      return;
+    }
+    
+    final data = widget.initialData!;
+    
+    setState(() {
+      // Load category
+      if (data['category_id'] != null) {
+        _selectedCategoryId = data['category_id'].toString();
+        _selectedCategoryName = data['category_name']?.toString();
+      }
+      
+      // Load location
+      if (data['thana_id'] != null) {
+        // Note: You'll need to fetch the actual Thana object based on ID
+        // For now, we'll just store the ID
+        // _selectedArea = Thana with data['thana_id']
+      }
+      
+      // Load brand and model if available
+      if (data['brand_id'] != null) {
+        // _selectedBrand = Brand with data['brand_id']
+        _selectedBrandName = data['brand_name']?.toString();
+      }
+      
+      if (data['model_id'] != null) {
+        // _selectedModel = Model with data['model_id']
+        _selectedModelName = data['model_name']?.toString();
+      }
+      
+      // Load field values
+      if (data['field_values'] != null) {
+        final fieldValues = data['field_values'] as Map<String, dynamic>;
+        fieldValues.forEach((key, value) {
+          _fieldValues[key] = value;
+        });
+      }
+      
+      // Load images
+      if (data['images'] != null) {
+        final images = data['images'] as List<dynamic>;
+        _uploadedImages.addAll(images.cast<String>());
+      }
+      
+      // Validate form
+      _validateForm();
+    });
   }
 
   @override
@@ -71,6 +160,28 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     final postFieldsState = ref.watch(postFieldsProvider);
     final currentIndex = ref.watch(navIndexProvider);
     final authState = ref.watch(authProvider);
+    final brandState = ref.watch(brandProvider);
+
+    // Update hasBrands state based on brand provider
+    if (!brandState.isLoading && brandState.brands.isNotEmpty && !_hasBrands) {
+      setState(() {
+        _hasBrands = true;
+      });
+    } else if (!brandState.isLoading &&
+        brandState.brands.isEmpty &&
+        _hasBrands) {
+      setState(() {
+        _hasBrands = false;
+      });
+    }
+
+    // If brands are available but no brand is selected, clear model
+    if (_hasBrands && _selectedBrand == null && _selectedModel != null) {
+      setState(() {
+        _selectedModel = null;
+        _selectedModelName = null;
+      });
+    }
 
     // Check auth when post-add tab becomes visible (index 2)
     if (currentIndex == 2 && !_hasCheckedAuth) {
@@ -88,7 +199,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post Ad'),
+        title: Text(_isEditMode ? 'Edit Post' : 'Post Ad'),
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
       ),
@@ -110,8 +221,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               _buildCategorySelector(theme),
               const SizedBox(height: 16),
 
-              // Brand selector (show when category selected)
-              if (_selectedCategoryId != null) ...[
+              // Brand selector (show when category selected AND brands are available)
+              if (_selectedCategoryId != null && _hasBrands) ...[
                 _buildBrandSelector(theme),
                 const SizedBox(height: 16),
 
@@ -127,11 +238,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             _buildHelperText(theme),
             const SizedBox(height: 24),
 
-            // Dynamic form fields (only show when location, category, brand, and model are selected)
+            // Dynamic form fields (show when location and category are selected, and brand/model if brands are available)
             if (_selectedArea != null &&
                 _selectedCategoryId != null &&
-                _selectedBrand != null &&
-                _selectedModel != null) ...[
+                (!_hasBrands ||
+                    (_selectedBrand != null && _selectedModel != null))) ...[
               if (postFieldsState.isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (postFieldsState.error != null)
@@ -142,7 +253,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               const SizedBox(height: 24),
 
               // Submit button
-              _buildSubmitButton(theme),
+              _buildSubmitButton(theme, _isEditMode),
             ],
           ],
         ),
@@ -208,11 +319,164 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         'model_id': _selectedModel?.id,
         'model_name': _selectedModelName,
         'field_values': _fieldValues,
+        'images': _uploadedImages,
       });
       print('PostAddScreen: Draft saved successfully');
     } catch (e) {
       print('PostAddScreen: Error saving draft: $e');
     }
+  }
+
+  Future<void> _handleImageSelection(List<File> imageFiles) async {
+    print(
+      'PostAddScreen: _handleImageSelection called with ${imageFiles.length} files',
+    );
+
+    if (_currentPostId == null) {
+      print('PostAddScreen: No draft ID, initializing draft');
+      await _initializeDraft();
+    }
+
+    if (_currentPostId == null) {
+      print('PostAddScreen: Draft initialization failed');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to initialize draft')),
+      );
+      return;
+    }
+
+    print(
+      'PostAddScreen: Starting background image upload for post ID: $_currentPostId',
+    );
+
+    setState(() {
+      _isUploadingImages = true;
+    });
+
+    // Upload in background without blocking UI
+    _uploadImagesInBackground(imageFiles);
+  }
+
+  Future<void> _uploadImagesInBackground(List<File> imageFiles) async {
+    try {
+      final apiClient = ApiClient();
+      print(
+        'PostAddScreen: Calling API uploadImages with ${imageFiles.length} files',
+      );
+
+      final response = await apiClient.uploadImages(
+        'posts/image/upload/$_currentPostId',
+        files: imageFiles,
+      );
+
+      print('PostAddScreen: Upload response status: ${response.statusCode}');
+      print('PostAddScreen: Upload response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        print('PostAddScreen: Response data type: ${data.runtimeType}');
+        print(
+          'PostAddScreen: Response data keys: ${data is Map ? (data as Map).keys : 'not a map'}',
+        );
+
+        if (data != null && data['image'] != null) {
+          final List<dynamic> newImages = data['image'];
+          print(
+            'PostAddScreen: Successfully uploaded ${newImages.length} images',
+          );
+          print('PostAddScreen: New images: $newImages');
+
+          setState(() {
+            _uploadedImages.addAll(newImages.cast<String>());
+            _isUploadingImages = false;
+          });
+
+          print(
+            'PostAddScreen: Total uploaded images: ${_uploadedImages.length}',
+          );
+          print('PostAddScreen: Current uploaded images: $_uploadedImages');
+
+          _saveDraft();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Images uploaded successfully')),
+            );
+          }
+        } else {
+          print('PostAddScreen: Response data or image array is null');
+          print('PostAddScreen: Full response: $data');
+
+          // Try to get image from different possible response structures
+          if (data != null) {
+            if (data['images'] != null) {
+              print('PostAddScreen: Found images in "images" key');
+              final List<dynamic> newImages = data['images'];
+              setState(() {
+                _uploadedImages.addAll(newImages.cast<String>());
+                _isUploadingImages = false;
+              });
+            } else if (data['data'] != null && data['data']['image'] != null) {
+              print('PostAddScreen: Found images in data.image');
+              final List<dynamic> newImages = data['data']['image'];
+              setState(() {
+                _uploadedImages.addAll(newImages.cast<String>());
+                _isUploadingImages = false;
+              });
+            }
+          }
+        }
+      } else {
+        print(
+          'PostAddScreen: Upload failed with status: ${response.statusCode}',
+        );
+        setState(() {
+          _isUploadingImages = false;
+        });
+      }
+    } catch (e) {
+      print('PostAddScreen: Error uploading images: $e');
+      setState(() {
+        _isUploadingImages = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error uploading images: $e')));
+      }
+    }
+  }
+
+  Future<void> _handleImageReorder(List<String> reorderedImages) async {
+    if (_currentPostId == null) {
+      return;
+    }
+
+    try {
+      final apiClient = ApiClient();
+      final response = await apiClient.reorderImages(
+        'posts/image/upload/reorder/$_currentPostId',
+        imageUrls: reorderedImages,
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          // Images are already updated in the widget
+        });
+        _saveDraft();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error reordering images: $e')));
+    }
+  }
+
+  void _handleImageRemoval(int index) {
+    setState(() {
+      _uploadedImages.removeAt(index);
+    });
+    _saveDraft();
   }
 
   void _validateForm() {
@@ -229,14 +493,15 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       isValid = false;
     }
 
-    // Check brand
-    if (_selectedBrand == null) {
-      isValid = false;
-    }
+    // Check brand and model only if brands are available for this category
+    if (_hasBrands) {
+      if (_selectedBrand == null) {
+        isValid = false;
+      }
 
-    // Check model
-    if (_selectedModel == null) {
-      isValid = false;
+      if (_selectedModel == null) {
+        isValid = false;
+      }
     }
 
     // Check dynamic fields (skip brand and model since they have dedicated selectors)
@@ -245,11 +510,14 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       // Skip brand and model fields
       if (field.slug == 'brand' || field.slug == 'model') continue;
 
-      if (field.pivot.isRequired == true &&
+      if (field.pivot.required &&
           (_fieldValues[field.slug] == null ||
               _fieldValues[field.slug].toString().isEmpty)) {
         isValid = false;
         _fieldErrors[field.slug] = '${field.title} is required';
+      } else {
+        // Clear error if field is now valid
+        _fieldErrors.remove(field.slug);
       }
     }
 
@@ -258,18 +526,165 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     });
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
+    // Mark that user has attempted to submit
+    setState(() {
+      _hasAttemptedSubmit = true;
+    });
+
     if (!_isFormValid) {
+      return;
+    }
+
+    // Check if images are still uploading
+    if (_isUploadingImages) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
+        const SnackBar(
+          content: Text('Please wait for images to finish uploading'),
+        ),
       );
       return;
     }
 
-    // TODO: Implement actual post submission
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Post submission coming soon!')),
-    );
+    // Initialize draft if not already done
+    if (_currentPostId == null) {
+      await _initializeDraft();
+    }
+
+    if (_currentPostId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to initialize draft')),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      // Get auth state for contact phones
+      final authState = ref.read(authProvider);
+
+      // Build contact phones array
+      List<Map<String, dynamic>> contactPhones = [];
+      if (authState.userPhone != null) {
+        contactPhones.add({'phone': authState.userPhone, 'verified': true});
+      }
+      if (authState.userContacts != null &&
+          authState.userContacts!.isNotEmpty) {
+        for (var contact in authState.userContacts!) {
+          // Handle both Contact objects and dynamic data
+          if (contact is Contact) {
+            contactPhones.add({
+              'id': contact.id,
+              'phone': contact.value,
+              'verified': contact.verifiedAt != null,
+            });
+          } else if (contact is Map<String, dynamic>) {
+            contactPhones.add({
+              'id': contact['id'],
+              'phone': contact['value'],
+              'verified': contact['verified_at'] != null,
+            });
+          }
+        }
+      }
+
+      // Build the info object
+      Map<String, dynamic> info = {
+        'field_values': [],
+        'contact_phones': contactPhones,
+        '__initialized': true,
+      };
+
+      // Add field values to info (not inside field_values array, but as direct properties)
+      _fieldValues.forEach((key, value) {
+        info[key] = value;
+      });
+
+      // Add description if exists
+      if (_fieldValues.containsKey('description')) {
+        info['description'] = _fieldValues['description'];
+      }
+
+      // Build the payload
+      Map<String, dynamic> payload = {
+        'info': info,
+        'category_id': _selectedCategoryId,
+        'thana_id': _selectedArea?.id,
+        'status': 'published',
+      };
+
+      // Add brand and model if available
+      if (_selectedBrand != null) {
+        payload['brand_id'] = _selectedBrand!.id;
+      }
+      if (_selectedModel != null) {
+        payload['model_id'] = _selectedModel!.id;
+      }
+
+      print('PostAddScreen: Submitting post with ID: $_currentPostId');
+      print('PostAddScreen: Payload: $payload');
+
+      final apiClient = ApiClient();
+      final response = await apiClient.submitPost(
+        _currentPostId!,
+        payload: payload,
+      );
+
+      print('PostAddScreen: Submit response status: ${response.statusCode}');
+      print('PostAddScreen: Submit response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        // Post submitted successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post submitted successfully!')),
+        );
+
+        // Clear the form
+        setState(() {
+          _fieldValues.clear();
+          _fieldErrors.clear();
+          _uploadedImages.clear();
+          _currentPostId = null;
+          _selectedCategoryName = null;
+          _selectedCategoryId = null;
+          _selectedArea = null;
+          _locationDisplayName = null;
+          _selectedBrand = null;
+          _selectedBrandName = null;
+          _selectedModel = null;
+          _selectedModelName = null;
+          _isFormValid = false;
+          _hasAttemptedSubmit = false;
+        });
+
+        // Navigate directly to My Posts screen
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.myPosts,
+            (route) => false,
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit post: ${response.statusCode}'),
+          ),
+        );
+      }
+    } catch (e) {
+      print('PostAddScreen: Error submitting post: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error submitting post: $e')));
+    } finally {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
   }
 
   Widget _buildPhoneSelector(ThemeData theme, bool hasPhone) {
@@ -280,7 +695,22 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
       // If user has phone in main field
       if (userPhone != null) {
+        // Auto-select the single phone number
+        if (_selectedContactNumber == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            setState(() {
+              _selectedContactNumber = userPhone;
+            });
+          });
+        }
+
         return InkWell(
+          onTap: () {
+            // Allow changing contact by going to phone add screen
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const PhoneAddScreen()),
+            );
+          },
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -300,7 +730,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   ),
                   child: Icon(
                     Icons.phone_outlined,
-                    color: theme.colorScheme.primary,
+                    color: Colors.white,
                     size: 24,
                   ),
                 ),
@@ -332,6 +762,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   ),
                 ),
 
+                // Edit button
+                Icon(Icons.edit, color: theme.colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
                 // Status indicator
                 Icon(Icons.check_circle, color: Colors.green, size: 24),
               ],
@@ -342,6 +775,88 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
       // If user has multiple contacts, show dropdown
       if (contacts != null && contacts.isNotEmpty) {
+        // If there's only one contact, show it as selected (like the main phone field)
+        if (contacts.length == 1) {
+          final singleContact = contacts.first;
+          // Auto-select the single contact
+          if (_selectedContactNumber == null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              setState(() {
+                _selectedContactNumber = singleContact.value;
+              });
+            });
+          }
+
+          return InkWell(
+            onTap: () {
+              // Allow changing contact by going to phone add screen
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const PhoneAddScreen()),
+              );
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.dividerColor),
+                borderRadius: BorderRadius.circular(12),
+                color: theme.colorScheme.surface,
+              ),
+              child: Row(
+                children: [
+                  // Icon
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.phone_outlined,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Label and value
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Contact Number',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          singleContact.value ?? '',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Edit button
+                  Icon(Icons.edit, color: theme.colorScheme.primary, size: 20),
+                  const SizedBox(width: 8),
+                  // Status indicator
+                  Icon(Icons.check_circle, color: Colors.green, size: 24),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // If multiple contacts, show dropdown
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -363,7 +878,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     ),
                     child: Icon(
                       Icons.phone_outlined,
-                      color: theme.colorScheme.primary,
+                      color: Colors.white,
                       size: 24,
                     ),
                   ),
@@ -397,6 +912,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     vertical: 8,
                   ),
                 ),
+                value: _selectedContactNumber,
                 items: contacts.map((contact) {
                   final phone = contact.value;
                   final isPrimary = contact.isPrimary == true;
@@ -432,7 +948,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                 }).toList(),
                 onChanged: (value) {
                   setState(() {
-                    // Store selected phone
+                    _selectedContactNumber = value;
                   });
                 },
               ),
@@ -459,7 +975,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               color: Colors.orange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.phone_outlined, color: Colors.orange, size: 24),
+            child: Icon(Icons.phone_outlined, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 16),
 
@@ -504,6 +1020,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
   Widget _buildLocationSelector(ThemeData theme) {
     final isSelected = _selectedArea != null;
+    final showError = _hasAttemptedSubmit && !isSelected;
 
     return InkWell(
       onTap: () => _showLocationSelector(),
@@ -511,7 +1028,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor),
+          border: Border.all(
+            color: showError ? Colors.red : theme.dividerColor,
+            width: showError ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
           color: theme.colorScheme.surface,
         ),
@@ -521,12 +1041,14 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: showError
+                    ? Colors.red.withOpacity(0.1)
+                    : theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.location_on_outlined,
-                color: theme.colorScheme.primary,
+                color: showError ? Colors.red : Colors.white,
                 size: 24,
               ),
             ),
@@ -542,7 +1064,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: showError
+                          ? Colors.red
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -562,7 +1086,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
             // Status indicator
             if (!isSelected)
-              _buildPulsingDot(theme)
+              showError
+                  ? Icon(Icons.error, color: Colors.red, size: 24)
+                  : _buildPulsingDot(theme)
             else
               Icon(Icons.check_circle, color: Colors.green, size: 24),
           ],
@@ -573,6 +1099,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
   Widget _buildCategorySelector(ThemeData theme) {
     final isSelected = _selectedCategoryId != null;
+    final showError = _hasAttemptedSubmit && !isSelected;
 
     return InkWell(
       onTap: () => _showCategorySelector(),
@@ -580,7 +1107,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor),
+          border: Border.all(
+            color: showError ? Colors.red : theme.dividerColor,
+            width: showError ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
           color: theme.colorScheme.surface,
         ),
@@ -590,12 +1120,14 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: showError
+                    ? Colors.red.withOpacity(0.1)
+                    : theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.category_outlined,
-                color: theme.colorScheme.primary,
+                color: showError ? Colors.red : Colors.white,
                 size: 24,
               ),
             ),
@@ -611,7 +1143,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: showError
+                          ? Colors.red
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -631,7 +1165,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
             // Status indicator
             if (!isSelected)
-              _buildPulsingDot(theme)
+              showError
+                  ? Icon(Icons.error, color: Colors.red, size: 24)
+                  : _buildPulsingDot(theme)
             else
               Icon(Icons.check_circle, color: Colors.green, size: 24),
           ],
@@ -643,14 +1179,29 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   Widget _buildBrandSelector(ThemeData theme) {
     final brandState = ref.watch(brandProvider);
     final isSelected = _selectedBrand != null;
+    final showError = _hasAttemptedSubmit && !isSelected;
 
     return InkWell(
-      onTap: () => _showBrandSelector(),
+      onTap: () {
+        // Check if brands are available before showing selector
+        if (brandState.brands.isEmpty && !brandState.isLoading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No brands available for this category'),
+            ),
+          );
+          return;
+        }
+        _showBrandSelector();
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor),
+          border: Border.all(
+            color: showError ? Colors.red : theme.dividerColor,
+            width: showError ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
           color: theme.colorScheme.surface,
         ),
@@ -660,12 +1211,14 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: showError
+                    ? Colors.red.withOpacity(0.1)
+                    : theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.business_outlined,
-                color: theme.colorScheme.primary,
+                color: showError ? Colors.red : Colors.white,
                 size: 24,
               ),
             ),
@@ -681,7 +1234,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: showError
+                          ? Colors.red
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -701,7 +1256,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
             // Status indicator
             if (!isSelected)
-              _buildPulsingDot(theme)
+              showError
+                  ? Icon(Icons.error, color: Colors.red, size: 24)
+                  : _buildPulsingDot(theme)
             else
               Icon(Icons.check_circle, color: Colors.green, size: 24),
           ],
@@ -711,8 +1268,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildModelSelector(ThemeData theme) {
-    final modelState = ref.watch(modelProvider);
     final isSelected = _selectedModel != null;
+    final showError = _hasAttemptedSubmit && !isSelected;
 
     return InkWell(
       onTap: () => _showModelSelector(),
@@ -720,7 +1277,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor),
+          border: Border.all(
+            color: showError ? Colors.red : theme.dividerColor,
+            width: showError ? 2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
           color: theme.colorScheme.surface,
         ),
@@ -730,12 +1290,14 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
+                color: showError
+                    ? Colors.red.withOpacity(0.1)
+                    : theme.colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.devices_outlined,
-                color: theme.colorScheme.primary,
+                color: showError ? Colors.red : Colors.white,
                 size: 24,
               ),
             ),
@@ -751,7 +1313,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      color: showError
+                          ? Colors.red
+                          : theme.colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -771,7 +1335,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
             // Status indicator
             if (!isSelected)
-              _buildPulsingDot(theme)
+              showError
+                  ? Icon(Icons.error, color: Colors.red, size: 24)
+                  : _buildPulsingDot(theme)
             else
               Icon(Icons.check_circle, color: Colors.green, size: 24),
           ],
@@ -783,7 +1349,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   Widget _buildHelperText(ThemeData theme) {
     return Center(
       child: Text(
-        'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন ও ক্যাটাগরি বেছে নিন',
+        _hasBrands
+            ? 'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন, ক্যাটাগরি, ব্র্যান্ড ও মডেল বেছে নিন'
+            : 'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন ও ক্যাটাগরি বেছে নিন',
         style: TextStyle(
           fontSize: 14,
           color: theme.colorScheme.onSurface.withOpacity(0.6),
@@ -823,31 +1391,54 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: fields
-          .where((field) {
-            // Skip brand and model fields since they have dedicated selectors
-            return field.slug != 'brand' && field.slug != 'model';
-          })
-          .map((field) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: DynamicFieldRenderer(
-                field: field,
-                value: _fieldValues[field.slug],
-                onChanged: (value) {
-                  _initializeDraft(); // Lazy initialization
-                  setState(() {
-                    _fieldValues[field.slug] = value;
-                    _fieldErrors.remove(field.slug);
-                    _validateForm();
-                  });
-                  _saveDraft();
-                },
-                errorText: _fieldErrors[field.slug],
-              ),
-            );
-          })
-          .toList(),
+      children: [
+        ...fields
+            .where((field) {
+              // Skip brand and model fields since they have dedicated selectors
+              return field.slug != 'brand' && field.slug != 'model';
+            })
+            .map((field) {
+              // Check if field should show validation error
+              bool showFieldError = false;
+              if (_hasAttemptedSubmit && field.pivot.required) {
+                final fieldValue = _fieldValues[field.slug];
+                if (fieldValue == null || fieldValue.toString().isEmpty) {
+                  showFieldError = true;
+                }
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: DynamicFieldRenderer(
+                  field: field,
+                  value: _fieldValues[field.slug],
+                  onChanged: (value) {
+                    _initializeDraft(); // Lazy initialization
+                    setState(() {
+                      _fieldValues[field.slug] = value;
+                      _fieldErrors.remove(field.slug);
+                      _validateForm();
+                    });
+                    _saveDraft();
+                  },
+                  errorText: _fieldErrors[field.slug],
+                  showValidationError: showFieldError,
+                ),
+              );
+            })
+            .toList(),
+
+        const SizedBox(height: 16),
+
+        // Image upload widget
+        ImageUploadWidget(
+          uploadedImages: _uploadedImages,
+          onImagesSelected: _handleImageSelection,
+          onImagesReordered: _handleImageReorder,
+          onImageRemoved: _handleImageRemoval,
+          isUploading: _isUploadingImages,
+        ),
+      ],
     );
   }
 
@@ -873,27 +1464,36 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     );
   }
 
-  Widget _buildSubmitButton(ThemeData theme) {
+  Widget _buildSubmitButton(ThemeData theme, bool isEditMode) {
     return Material(
       color: _isFormValid
           ? theme.colorScheme.primary
           : theme.colorScheme.primary.withOpacity(0.5),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: _isFormValid ? _handleSubmit : null,
+        onTap: _isSubmitting ? null : _handleSubmit, // Disable when submitting
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 16),
           alignment: Alignment.center,
-          child: const Text(
-            'Submit',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  isEditMode ? 'Update' : 'Submit',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
@@ -1003,6 +1603,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                             setState(() {
                               _selectedBrand = brand;
                               _selectedBrandName = brand.displayName;
+                              _hasBrands = true;
                               // Clear model when brand changes
                               _selectedModel = null;
                               _selectedModelName = null;

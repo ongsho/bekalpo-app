@@ -31,6 +31,7 @@ class BrandNotifier extends StateNotifier<BrandState> {
   Future<void> fetchBrands(int? categoryId) async {
     if (categoryId == null) return;
 
+    print('BrandProvider: Fetching brands for category_id: $categoryId');
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _apiClient.get(
@@ -38,20 +39,32 @@ class BrandNotifier extends StateNotifier<BrandState> {
         queryParameters: {'category_id': categoryId.toString()},
       );
 
+      print('BrandProvider: Response status: ${response.statusCode}');
+      print('BrandProvider: Response data type: ${response.data.runtimeType}');
+      print('BrandProvider: Response data: ${response.data}');
+
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> brandsData = response.data as List;
+        print('BrandProvider: Brands data type: ${brandsData.runtimeType}');
+        print('BrandProvider: Brands data length: ${brandsData.length}');
+        
         final brands = brandsData
             .map((json) => Brand.fromJson(json as Map<String, dynamic>))
             .toList();
 
+        print('BrandProvider: Loaded ${brands.length} brands');
+        print('BrandProvider: Brand names: ${brands.map((b) => b.nameEn).toList()}');
         state = state.copyWith(brands: brands, isLoading: false);
       } else {
+        print('BrandProvider: Failed to load brands - status: ${response.statusCode}');
         state = state.copyWith(
           isLoading: false,
           error: 'Failed to load brands',
         );
       }
     } catch (e) {
+      print('BrandProvider: Error loading brands: $e');
+      print('BrandProvider: Error type: ${e.runtimeType}');
       state = state.copyWith(
         isLoading: false,
         error: 'Error loading brands: $e',

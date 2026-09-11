@@ -112,7 +112,7 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
           ),
           const SizedBox(height: 12),
           TextFormField(
-            initialValue: widget.value as String?,
+            initialValue: widget.value?.toString(),
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
               hintText: widget.field.placeholder ?? 'Enter price',
@@ -133,7 +133,7 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
     final showError = widget.showValidationError;
 
     return TextFormField(
-      initialValue: widget.value as String?,
+      initialValue: widget.value?.toString(),
       decoration: InputDecoration(
         labelText:
             widget.field.title + (widget.field.pivot.required ? ' *' : ''),
@@ -160,6 +160,17 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
 
   Widget _buildRadioField(ThemeData theme) {
     final showError = widget.showValidationError;
+    
+    // Handle radio value - extract from array if needed
+    String? selectedValue;
+    if (widget.value is List) {
+      final listValue = widget.value as List;
+      if (listValue.isNotEmpty) {
+        selectedValue = listValue.first.toString();
+      }
+    } else if (widget.value != null) {
+      selectedValue = widget.value.toString();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,9 +220,10 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                       )
                     : null,
                 value: item.id.toString(),
-                groupValue: widget.value as String?,
+                groupValue: selectedValue,
                 onChanged: (value) {
-                  widget.onChanged(value);
+                  // Radio should store as array
+                  widget.onChanged([value]);
                 },
                 activeColor: theme.colorScheme.primary,
               );
@@ -231,6 +243,17 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
 
   Widget _buildSelectField(ThemeData theme) {
     final showError = widget.showValidationError;
+    
+    // Handle select value - extract from array if needed
+    String? selectedValue;
+    if (widget.value is List) {
+      final listValue = widget.value as List;
+      if (listValue.isNotEmpty) {
+        selectedValue = listValue.first.toString();
+      }
+    } else if (widget.value != null) {
+      selectedValue = widget.value.toString();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +319,7 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                 vertical: 8,
               ),
             ),
-            value: widget.value as String?,
+            value: selectedValue,
             hint: Text(
               widget.field.placeholder ?? 'Select ${widget.field.title}',
               maxLines: 1,
@@ -335,7 +358,8 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
               );
             }).toList(),
             onChanged: (value) {
-              widget.onChanged(value);
+              // Select should store as array
+              widget.onChanged([value]);
             },
           ),
       ],
@@ -389,11 +413,14 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
           else
             Column(
               children: widget.field.items.map((item) {
-                final isSelected =
-                    (widget.value as List<String>?)?.contains(
-                      item.id.toString(),
-                    ) ??
-                    false;
+                // Handle checkbox value - convert to List<String> if needed
+                List<String> currentList = [];
+                if (widget.value is List) {
+                  currentList = (widget.value as List).map((e) => e.toString()).toList();
+                }
+                
+                final isSelected = currentList.contains(item.id.toString());
+                
                 return CheckboxListTile(
                   title: Text(
                     item.nameEn,
@@ -409,7 +436,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                       : null,
                   value: isSelected,
                   onChanged: (checked) {
-                    final currentList = widget.value as List<String>? ?? [];
                     if (checked == true) {
                       currentList.add(item.id.toString());
                     } else {

@@ -453,6 +453,18 @@ class ApiClient {
       cancelToken: cancelToken,
     );
   }
+
+  Future<Response> getPostForEdit(
+    String postId, {
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    return _dio.get(
+      'posts/$postId/edit',
+      options: options,
+      cancelToken: cancelToken,
+    );
+  }
 }
 
 /// Retry interceptor for Dio

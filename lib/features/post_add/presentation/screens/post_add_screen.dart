@@ -14,6 +14,7 @@ import '../../../../core/providers/draft_post_provider.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/providers/brand_provider.dart';
 import '../../../../core/providers/model_provider.dart';
+import '../../../../core/providers/location_provider.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../home/presentation/widgets/location_selector_bottom_sheet.dart';
 import '../../../home/presentation/widgets/category_selector_bottom_sheet.dart';
@@ -84,6 +85,12 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
   // Submit state
   bool _isSubmitting = false;
+  
+  // Loading state for API calls
+  bool _isLoading = false;
+  
+  // Edit data storage
+  dynamic _editData;
 
   @override
   void initState() {
@@ -93,66 +100,385 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     _isEditMode = widget.postId != null;
     
     if (_isEditMode) {
-      // Load existing post data for editing
+      // Load existing post data for editing from API
       _currentPostId = widget.postId;
-      _loadExistingPostData();
+      _loadPostFromAPI();
     }
     // Don't initialize draft in initState to avoid blocking app startup
     // Initialize draft lazily when user interacts with the screen
   }
 
-  void _loadExistingPostData() {
-    if (widget.initialData == null) {
-      // If no initial data provided, we could fetch from API
-      // For now, we'll just set the draft ID
-      return;
-    }
+  Future<void> _loadPostFromAPI() async {
+    if (_currentPostId == null) return;
     
-    final data = widget.initialData!;
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      final apiClient = ApiClient();
+      final response = await apiClient.getPostForEdit(_currentPostId!);
+      
+      print('PostAddScreen: API response status: ${response.statusCode}');
+      print('PostAddScreen: API response data: ${response.data}');
+      
+      if (response.statusCode == 200) {
+        final responseMap = response.data as Map<String, dynamic>;
+        final data = responseMap['data'];
+        _populateFormDataFromAPI(data);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load post: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      print('PostAddScreen: Error loading post from API: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading post: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _populateFormDataFromAPI(dynamic data) {
+    if (data == null) return;
+    
+    print('PostAddScreen: Populating form data from API');
+    print('PostAddScreen: thana_id: ${data['thana_id']}');
+    print('PostAddScreen: thana: ${data['thana']}');
+    print('PostAddScreen: brand_id: ${data['brand_id']}');
+    print('PostAddScreen: model_id: ${data['model_id']}');
     
     setState(() {
       // Load category
-      if (data['category_id'] != null) {
+      if (data['category_id'] != null && data['category'] != null && data['category'] is Map) {
+        final categoryData = data['category'] as Map<String, dynamic>;
         _selectedCategoryId = data['category_id'].toString();
-        _selectedCategoryName = data['category_name']?.toString();
+        _selectedCategoryName = categoryData['name_en']?.toString();
+        print('PostAddScreen: Category set - ID: $_selectedCategoryId, Name: $_selectedCategoryName');
+        
+        // Trigger post fields provider reload with new category
+        print('PostAddScreen: Triggering post fields reload for category: $_selectedCategoryId');
+        ref.read(postFieldsProvider.notifier).fetchFields(int.parse(_selectedCategoryId!));
+        
+        // Trigger brand provider reload with new category
+        print('PostAddScreen: Triggering brand provider reload for category: $_selectedCategoryId');
+        ref.read(brandProvider.notifier).fetchBrands(int.parse(_selectedCategoryId!));
       }
       
-      // Load location
+      // Load location (Thana)
       if (data['thana_id'] != null) {
-        // Note: You'll need to fetch the actual Thana object based on ID
-        // For now, we'll just store the ID
-        // _selectedArea = Thana with data['thana_id']
+        print('PostAddScreen: Attempting to load thana');
+        if (data['thana'] != null && data['thana'] is Map) {
+          final thanaData = data['thana'] as Map<String, dynamic>;
+          _selectedArea = Thana(
+            id: data['thana_id'],
+            nameEn: thanaData['name_en']?.toString(),
+            nameBn: thanaData['name_bn']?.toString(),
+          );
+          _locationDisplayName = _selectedArea?.nameEn;
+          print('PostAddScreen: Thana loaded from map - _selectedArea: $_selectedArea, _locationDisplayName: $_locationDisplayName');
+        } else if (data['thana'] is List && data['thana'].isNotEmpty) {
+          // Handle case where thana is an array
+          final thanaData = data['thana'][0] as Map<String, dynamic>;
+          _selectedArea = Thana(
+            id: data['thana_id'],
+            nameEn: thanaData['name_en']?.toString(),
+            nameBn: thanaData['name_bn']?.toString(),
+          );
+          _locationDisplayName = _selectedArea?.nameEn;
+          print('PostAddScreen: Thana loaded from array - _selectedArea: $_selectedArea, _locationDisplayName: $_locationDisplayName');
+        } else {
+          // If thana object is not available, fetch it by ID
+          print('PostAddScreen: Thana object not available, fetching by ID');
+          _loadThanaById(data['thana_id']);
+        }
       }
       
-      // Load brand and model if available
+      // Load brand if available
       if (data['brand_id'] != null) {
-        // _selectedBrand = Brand with data['brand_id']
-        _selectedBrandName = data['brand_name']?.toString();
+        print('PostAddScreen: Attempting to load brand with ID: ${data['brand_id']}');
+        print('PostAddScreen: brand data: ${data['brand']}');
+        
+        if (data['brand'] != null && data['brand'] is Map) {
+          final brandData = data['brand'] as Map<String, dynamic>;
+          _selectedBrand = Brand(
+            id: data['brand_id'],
+            nameEn: brandData['name_en']?.toString(),
+            nameBn: brandData['name_bn']?.toString(),
+          );
+          _selectedBrandName = _selectedBrand?.nameEn;
+          print('PostAddScreen: Brand loaded from map - _selectedBrand: $_selectedBrand, _selectedBrandName: $_selectedBrandName');
+          
+          // Trigger model provider reload with new brand
+          print('PostAddScreen: Triggering model provider reload for brand: ${data['brand_id']}');
+          ref.read(modelProvider.notifier).fetchModels(data['brand_id']);
+        } else if (data['brand'] is List && data['brand'].isNotEmpty) {
+          // Handle case where brand is an array
+          final brandData = data['brand'][0] as Map<String, dynamic>;
+          _selectedBrand = Brand(
+            id: data['brand_id'],
+            nameEn: brandData['name_en']?.toString(),
+            nameBn: brandData['name_bn']?.toString(),
+          );
+          _selectedBrandName = _selectedBrand?.nameEn;
+          print('PostAddScreen: Brand loaded from array - _selectedBrand: $_selectedBrand, _selectedBrandName: $_selectedBrandName');
+          
+          // Trigger model provider reload with new brand
+          print('PostAddScreen: Triggering model provider reload for brand: ${data['brand_id']}');
+          ref.read(modelProvider.notifier).fetchModels(data['brand_id']);
+        } else {
+          print('PostAddScreen: Brand object not available, will load from brand provider');
+          _loadBrandById(data['brand_id']);
+        }
       }
       
+      // Load model if available
       if (data['model_id'] != null) {
-        // _selectedModel = Model with data['model_id']
-        _selectedModelName = data['model_name']?.toString();
+        print('PostAddScreen: Attempting to load model with ID: ${data['model_id']}');
+        print('PostAddScreen: model data: ${data['model']}');
+        
+        if (data['model'] != null && data['model'] is Map) {
+          final modelData = data['model'] as Map<String, dynamic>;
+          _selectedModel = ProductModel(
+            id: data['model_id'],
+            nameEn: modelData['name_en']?.toString(),
+            nameBn: modelData['name_bn']?.toString(),
+          );
+          _selectedModelName = _selectedModel?.nameEn;
+          print('PostAddScreen: Model loaded from map - _selectedModel: $_selectedModel, _selectedModelName: $_selectedModelName');
+        } else if (data['model'] is List && data['model'].isNotEmpty) {
+          // Handle case where model is an array
+          final modelData = data['model'][0] as Map<String, dynamic>;
+          _selectedModel = ProductModel(
+            id: data['model_id'],
+            nameEn: modelData['name_en']?.toString(),
+            nameBn: modelData['name_bn']?.toString(),
+          );
+          _selectedModelName = _selectedModel?.nameEn;
+          print('PostAddScreen: Model loaded from array - _selectedModel: $_selectedModel, _selectedModelName: $_selectedModelName');
+        } else {
+          print('PostAddScreen: Model object not available, will load from model provider');
+          _loadModelById(data['model_id']);
+        }
       }
       
-      // Load field values
+      // Load field values from field_values array
       if (data['field_values'] != null) {
-        final fieldValues = data['field_values'] as Map<String, dynamic>;
-        fieldValues.forEach((key, value) {
-          _fieldValues[key] = value;
-        });
+        print('PostAddScreen: Loading field values');
+        final fieldValues = data['field_values'] as List<dynamic>;
+        for (var fv in fieldValues) {
+          if (fv['field_slug'] != null) {
+            final slug = fv['field_slug'];
+            final value = fv['value'];
+            if (value != null) {
+              _fieldValues[slug] = value;
+              print('PostAddScreen: Field value loaded: $slug = $value');
+            }
+            // Handle value_ids for select fields
+            if (fv['value_ids'] != null) {
+              _fieldValues[slug] = fv['value_ids'];
+              print('PostAddScreen: Field value_ids loaded: $slug = ${fv['value_ids']}');
+            }
+          }
+        }
+      }
+      
+      // Load direct fields from post object
+      if (data['title'] != null) {
+        _fieldValues['title'] = data['title'];
+        print('PostAddScreen: Title loaded: ${data['title']}');
+      }
+      if (data['description'] != null) {
+        _fieldValues['description'] = data['description'];
+        print('PostAddScreen: Description loaded: ${data['description']}');
       }
       
       // Load images
-      if (data['images'] != null) {
-        final images = data['images'] as List<dynamic>;
+      if (data['image'] != null) {
+        final images = data['image'] as List<dynamic>;
         _uploadedImages.addAll(images.cast<String>());
+        print('PostAddScreen: Loaded ${images.length} images');
       }
       
       // Validate form
       _validateForm();
+      
+      // Store the data for later use when dynamic fields are loaded
+      _editData = data;
+      
+      // Debug print after setState
+      print('PostAddScreen: After setState - _selectedCategoryId: $_selectedCategoryId, _selectedCategoryName: $_selectedCategoryName');
+      print('PostAddScreen: After setState - _selectedArea: $_selectedArea, _locationDisplayName: $_locationDisplayName');
+      print('PostAddScreen: After setState - _selectedBrand: $_selectedBrand, _selectedBrandName: $_selectedBrandName');
+      print('PostAddScreen: After setState - _selectedModel: $_selectedModel, _selectedModelName: $_selectedModelName');
+      print('PostAddScreen: After setState - _fieldValues: $_fieldValues');
+      print('PostAddScreen: After setState - _uploadedImages: $_uploadedImages');
     });
   }
+  
+  // Method to apply field values after dynamic fields are loaded
+  void _applyFieldValuesAfterFieldsLoaded() {
+    if (_editData == null) return;
+    
+    print('PostAddScreen: Applying field values after dynamic fields loaded');
+    print('PostAddScreen: _editData: $_editData');
+    setState(() {
+      // Re-apply field values after dynamic fields are loaded
+      if (_editData['field_values'] != null) {
+        final fieldValues = _editData['field_values'] as List<dynamic>;
+        for (var fv in fieldValues) {
+          if (fv['field_slug'] != null) {
+            final slug = fv['field_slug'];
+            final value = fv['value'];
+            if (value != null) {
+              _fieldValues[slug] = value;
+              print('PostAddScreen: Field value re-applied: $slug = $value');
+            }
+            if (fv['value_ids'] != null) {
+              _fieldValues[slug] = fv['value_ids'];
+              print('PostAddScreen: Field value_ids re-applied: $slug = ${fv['value_ids']}');
+            }
+          }
+        }
+      }
+      if (_editData['title'] != null) _fieldValues['title'] = _editData['title'];
+      if (_editData['description'] != null) _fieldValues['description'] = _editData['description'];
+      
+      print('PostAddScreen: Field values after applying: $_fieldValues');
+    });
+  }
+
+  Future<void> _loadBrandById(dynamic brandId) async {
+    try {
+      print('PostAddScreen: _loadBrandById called with ID: $brandId');
+      
+      // Use brand provider to find the brand by ID
+      final brandState = ref.read(brandProvider);
+      
+      // Search for brand in the provider
+      final brand = brandState.brands.firstWhere(
+        (b) => b.id == brandId,
+        orElse: () => throw Exception('Brand not found'),
+      );
+      
+      setState(() {
+        _selectedBrand = brand;
+        _selectedBrandName = brand.nameEn;
+        print('PostAddScreen: Found brand: ${brand.nameEn}');
+      });
+    } catch (e) {
+      print('PostAddScreen: Error loading brand: $e');
+      // Set placeholder on error
+      setState(() {
+        _selectedBrand = Brand(
+          id: brandId,
+          nameEn: 'Brand $brandId',
+          nameBn: 'ব্র্যান্ড $brandId',
+        );
+        _selectedBrandName = _selectedBrand?.nameEn;
+      });
+    }
+  }
+
+  Future<void> _loadModelById(dynamic modelId) async {
+    try {
+      print('PostAddScreen: _loadModelById called with ID: $modelId');
+      
+      // Use model provider to find the model by ID
+      final modelState = ref.read(modelProvider);
+      
+      // Search for model in the provider
+      final model = modelState.models.firstWhere(
+        (m) => m.id == modelId,
+        orElse: () => throw Exception('Model not found'),
+      );
+      
+      setState(() {
+        _selectedModel = model;
+        _selectedModelName = model.nameEn;
+        print('PostAddScreen: Found model: ${model.nameEn}');
+      });
+    } catch (e) {
+      print('PostAddScreen: Error loading model: $e');
+      // Set placeholder on error
+      setState(() {
+        _selectedModel = ProductModel(
+          id: modelId,
+          nameEn: 'Model $modelId',
+          nameBn: 'মডেল $modelId',
+        );
+        _selectedModelName = _selectedModel?.nameEn;
+      });
+    }
+  }
+
+  Future<void> _loadThanaById(dynamic thanaId) async {
+    try {
+      print('PostAddScreen: _loadThanaById called with ID: $thanaId');
+      
+      // Use location provider to find the thana by ID
+      final locationState = ref.read(locationProvider);
+      
+      // Search for thana in all divisions
+      Thana? foundThana;
+      for (final division in locationState.allDivisions) {
+        if (division.districts != null) {
+          for (final district in division.districts!) {
+            if (district.thanas != null) {
+              try {
+                final thana = district.thanas!.firstWhere(
+                  (t) => t.id == thanaId,
+                  orElse: () => throw Exception('Not found'),
+                );
+                foundThana = thana;
+                break;
+              } catch (e) {
+                // Continue searching
+              }
+            }
+          }
+        }
+        if (foundThana != null) break;
+      }
+      
+      if (foundThana != null) {
+        final thanaName = foundThana.nameEn ?? 'Area $thanaId';
+        setState(() {
+          _selectedArea = foundThana;
+          _locationDisplayName = thanaName;
+          print('PostAddScreen: Found thana: $thanaName');
+        });
+      } else {
+        // Set placeholder if not found
+        setState(() {
+          _selectedArea = Thana(
+            id: thanaId,
+            nameEn: 'Area $thanaId',
+            nameBn: 'এলাক $thanaId',
+          );
+          _locationDisplayName = _selectedArea?.nameEn;
+          print('PostAddScreen: Set placeholder thana with ID: $thanaId');
+        });
+      }
+    } catch (e) {
+      print('PostAddScreen: Error loading thana: $e');
+      // Set placeholder on error
+      setState(() {
+        _selectedArea = Thana(
+          id: thanaId,
+          nameEn: 'Area $thanaId',
+          nameBn: 'এলাক $thanaId',
+        );
+        _locationDisplayName = _selectedArea?.nameEn;
+      });
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -160,20 +486,26 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     final postFieldsState = ref.watch(postFieldsProvider);
     final currentIndex = ref.watch(navIndexProvider);
     final authState = ref.watch(authProvider);
-    final brandState = ref.watch(brandProvider);
 
-    // Update hasBrands state based on brand provider
-    if (!brandState.isLoading && brandState.brands.isNotEmpty && !_hasBrands) {
-      setState(() {
-        _hasBrands = true;
-      });
-    } else if (!brandState.isLoading &&
-        brandState.brands.isEmpty &&
-        _hasBrands) {
-      setState(() {
-        _hasBrands = false;
-      });
-    }
+    // Listen for post fields loading completion
+    ref.listen(postFieldsProvider, (previous, next) {
+      print('PostAddScreen: Post fields state changed - previous isLoading: ${previous?.isLoading}, next isLoading: ${next.isLoading}, error: ${next.error}');
+      if (previous?.isLoading == true && !next.isLoading && next.error == null) {
+        print('PostAddScreen: Post fields loaded, applying field values');
+        _applyFieldValuesAfterFieldsLoaded();
+      }
+    });
+    
+    // Listen for brand provider loading completion
+    ref.listen(brandProvider, (previous, next) {
+      print('PostAddScreen: Brand state changed - previous isLoading: ${previous?.isLoading}, next isLoading: ${next.isLoading}, brands count: ${next.brands.length}, error: ${next.error}');
+      if (!next.isLoading && next.brands.isNotEmpty && !_hasBrands) {
+        setState(() {
+          _hasBrands = true;
+          print('PostAddScreen: _hasBrands set to true');
+        });
+      }
+    });
 
     // If brands are available but no brand is selected, clear model
     if (_hasBrands && _selectedBrand == null && _selectedModel != null) {
@@ -203,7 +535,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,8 +555,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               _buildCategorySelector(theme),
               const SizedBox(height: 16),
 
-              // Brand selector (show when category selected AND brands are available)
-              if (_selectedCategoryId != null && _hasBrands) ...[
+              // Brand selector (show when category selected AND brands are available OR brand is already selected in edit mode)
+              if (_selectedCategoryId != null && (_hasBrands || _selectedBrand != null)) ...[
                 _buildBrandSelector(theme),
                 const SizedBox(height: 16),
 
@@ -239,10 +573,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             const SizedBox(height: 24),
 
             // Dynamic form fields (show when location and category are selected, and brand/model if brands are available)
-            if (_selectedArea != null &&
-                _selectedCategoryId != null &&
-                (!_hasBrands ||
-                    (_selectedBrand != null && _selectedModel != null))) ...[
+            if (_selectedArea != null && _selectedCategoryId != null) ...[
               if (postFieldsState.isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (postFieldsState.error != null)
@@ -609,6 +940,20 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         info['description'] = _fieldValues['description'];
       }
 
+      // Add brand and model inside info object (backend expects this format)
+      if (_selectedBrand != null) {
+        info['brand'] = _selectedBrand!.id;
+        print('PostAddScreen: Adding brand inside info: ${_selectedBrand!.id}');
+      } else {
+        print('PostAddScreen: No brand selected, brand will be null');
+      }
+      if (_selectedModel != null) {
+        info['model'] = _selectedModel!.id;
+        print('PostAddScreen: Adding model inside info: ${_selectedModel!.id}');
+      } else {
+        print('PostAddScreen: No model selected, model will be null');
+      }
+
       // Build the payload
       Map<String, dynamic> payload = {
         'info': info,
@@ -616,14 +961,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         'thana_id': _selectedArea?.id,
         'status': 'published',
       };
-
-      // Add brand and model if available
-      if (_selectedBrand != null) {
-        payload['brand_id'] = _selectedBrand!.id;
-      }
-      if (_selectedModel != null) {
-        payload['model_id'] = _selectedModel!.id;
-      }
 
       print('PostAddScreen: Submitting post with ID: $_currentPostId');
       print('PostAddScreen: Payload: $payload');
@@ -1071,7 +1408,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isSelected ? _locationDisplayName! : 'Select Location',
+                    isSelected ? (_locationDisplayName ?? 'Select Location') : 'Select Location',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -1150,7 +1487,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isSelected ? _selectedCategoryName! : 'Select Category',
+                    isSelected ? (_selectedCategoryName ?? 'Select Category') : 'Select Category',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -1241,7 +1578,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isSelected ? _selectedBrandName! : 'Select Brand',
+                    isSelected ? (_selectedBrandName ?? 'Select Brand') : 'Select Brand',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -1268,6 +1605,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildModelSelector(ThemeData theme) {
+    final modelState = ref.watch(modelProvider);
     final isSelected = _selectedModel != null;
     final showError = _hasAttemptedSubmit && !isSelected;
 
@@ -1320,7 +1658,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isSelected ? _selectedModelName! : 'Select Model',
+                    isSelected ? (_selectedModelName ?? 'Select Model') : 'Select Model',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

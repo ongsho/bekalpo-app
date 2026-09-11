@@ -94,33 +94,13 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
           (p) => p.slug == ad.slug,
         );
         
-        // Prepare initial data for editing
-        final Map<String, dynamic> fieldValuesMap = {};
-        if (post.fieldValues != null) {
-          for (var fv in post.fieldValues!) {
-            if (fv.fieldSlug != null) {
-              fieldValuesMap[fv.fieldSlug!] = fv.value;
-            }
-          }
-        }
-        
-        final initialData = {
-          'postId': post.id != null ? post.id.toString() : '',
-          'category_id': post.categoryId,
-          'category_name': post.category?.nameEn,
-          'thana_id': post.thanaId,
-          'brand_id': post.brandId,
-          'brand_name': post.brand?.nameEn,
-          'model_id': post.modelId,
-          'model_name': post.model?.nameEn,
-          'images': post.images,
-          'field_values': fieldValuesMap,
-        };
+        // Just pass the postId, let the screen load data from API
+        final postId = post.id != null ? post.id.toString() : '';
         
         Navigator.pushNamed(
           context,
           AppRoutes.postAdd,
-          arguments: initialData,
+          arguments: postId,
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

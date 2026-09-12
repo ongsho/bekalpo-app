@@ -18,6 +18,8 @@ import '../../../../core/providers/location_provider.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../home/presentation/widgets/location_selector_bottom_sheet.dart';
 import '../../../home/presentation/widgets/category_selector_bottom_sheet.dart';
+import '../../../home/presentation/widgets/brand_selector_bottom_sheet.dart';
+import '../../../home/presentation/widgets/model_selector_bottom_sheet.dart';
 import '../widgets/dynamic_field_renderer.dart';
 import '../widgets/image_upload_widget.dart';
 import '../../../auth/presentation/screens/auth_entry_screen.dart';
@@ -628,7 +630,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   const SizedBox(height: 24),
 
                   // Dynamic form fields (show when location and category are selected, and brand/model if brands are available)
-                  if (_selectedArea != null && _selectedCategoryId != null) ...[
+                  if (_selectedArea != null &&
+                      _selectedCategoryId != null &&
+                      (!_hasBrands ||
+                          (_selectedBrand != null &&
+                              _selectedModel != null))) ...[
                     if (postFieldsState.isLoading)
                       const Center(child: CircularProgressIndicator())
                     else if (postFieldsState.error != null)
@@ -640,6 +646,37 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
                     // Submit button
                     _buildSubmitButton(theme, _isEditMode),
+                  ] else if (_selectedArea != null &&
+                      _selectedCategoryId != null &&
+                      _hasBrands) ...[
+                    // Show message when brand/model not selected
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Please select brand and model to continue',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -891,29 +928,32 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     }
 
     // Check dynamic fields (skip brand and model since they have dedicated selectors)
-    final postFieldsState = ref.read(postFieldsProvider);
-    for (final field in postFieldsState.fields) {
-      // Skip brand and model fields
-      if (field.slug == 'brand' || field.slug == 'model') continue;
+    // Only validate dynamic fields if brand and model are selected (when brands are available)
+    if (!_hasBrands || (_selectedBrand != null && _selectedModel != null)) {
+      final postFieldsState = ref.read(postFieldsProvider);
+      for (final field in postFieldsState.fields) {
+        // Skip brand and model fields
+        if (field.slug == 'brand' || field.slug == 'model') continue;
 
-      if (field.pivot.required &&
-          (_fieldValues[field.slug] == null ||
-              _fieldValues[field.slug].toString().isEmpty)) {
-        isValid = false;
-        _fieldErrors[field.slug] = '${field.title} is required';
-      } else {
-        // Clear error if field is now valid
-        _fieldErrors.remove(field.slug);
+        if (field.pivot.required &&
+            (_fieldValues[field.slug] == null ||
+                _fieldValues[field.slug].toString().isEmpty)) {
+          isValid = false;
+          _fieldErrors[field.slug] = '${field.title} is required';
+        } else {
+          // Clear error if field is now valid
+          _fieldErrors.remove(field.slug);
+        }
       }
-    }
 
-    // Check description field (always required)
-    if (_fieldValues['description'] == null ||
-        _fieldValues['description'].toString().isEmpty) {
-      isValid = false;
-      _fieldErrors['description'] = 'Description is required';
-    } else {
-      _fieldErrors.remove('description');
+      // Check description field (always required when dynamic fields are shown)
+      if (_fieldValues['description'] == null ||
+          _fieldValues['description'].toString().isEmpty) {
+        isValid = false;
+        _fieldErrors['description'] = 'Description is required';
+      } else {
+        _fieldErrors.remove('description');
+      }
     }
 
     setState(() {
@@ -1687,7 +1727,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildModelSelector(ThemeData theme) {
-    final modelState = ref.watch(modelProvider);
     final isSelected = _selectedModel != null;
     final showError = _hasAttemptedSubmit && !isSelected;
 
@@ -1769,11 +1808,21 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildHelperText(ThemeData theme) {
+    String helperText;
+    if (_hasBrands) {
+      if (_selectedBrand != null && _selectedModel != null) {
+        helperText = 'বিজ্ঞাপন দিতে অন্যান্য তথ্য পূরণ করুন';
+      } else {
+        helperText =
+            'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন, ক্যাটাগরি, ব্র্যান্ড ও মডেল বেছে নিন';
+      }
+    } else {
+      helperText = 'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন ও ক্যাটাগরি বেছে নিন';
+    }
+
     return Center(
       child: Text(
-        _hasBrands
-            ? 'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন, ক্যাটাগরি, ব্র্যান্ড ও মডেল বেছে নিন'
-            : 'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন ও ক্যাটাগরি বেছে নিন',
+        helperText,
         style: TextStyle(
           fontSize: 14,
           color: theme.colorScheme.onSurface.withOpacity(0.6),
@@ -1988,13 +2037,20 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildSubmitButton(ThemeData theme, bool isEditMode) {
+    // Only enable submit if form is valid AND brand/model are selected when brands are available
+    final canSubmit =
+        _isFormValid &&
+        (!_hasBrands || (_selectedBrand != null && _selectedModel != null));
+
     return Material(
-      color: _isFormValid
+      color: canSubmit
           ? theme.colorScheme.primary
           : theme.colorScheme.primary.withOpacity(0.5),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        onTap: _isSubmitting ? null : _handleSubmit, // Disable when submitting
+        onTap: (_isSubmitting || !canSubmit)
+            ? null
+            : _handleSubmit, // Disable when submitting or can't submit
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
@@ -2081,71 +2137,23 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Select Brand',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: brandState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : brandState.brands.isEmpty
-                  ? const Center(child: Text('No brands available'))
-                  : ListView.builder(
-                      itemCount: brandState.brands.length,
-                      itemBuilder: (context, index) {
-                        final brand = brandState.brands[index];
-                        return ListTile(
-                          title: Text(brand.displayName),
-                          onTap: () {
-                            setState(() {
-                              _selectedBrand = brand;
-                              _selectedBrandName = brand.displayName;
-                              _hasBrands = true;
-                              // Clear model when brand changes
-                              _selectedModel = null;
-                              _selectedModelName = null;
-                              // Fetch models for the new brand
-                              if (brand.id != null) {
-                                ref
-                                    .read(modelProvider.notifier)
-                                    .fetchModels(brand.id!);
-                              }
-                            });
-                            _saveDraft();
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+      builder: (context) => BrandSelectorBottomSheet(
+        brands: brandState.brands,
+        onBrandSelected: (brand) {
+          setState(() {
+            _selectedBrand = brand;
+            _selectedBrandName = brand.displayName;
+            _hasBrands = true;
+            // Clear model when brand changes
+            _selectedModel = null;
+            _selectedModelName = null;
+            // Fetch models for the new brand
+            if (brand.id != null) {
+              ref.read(modelProvider.notifier).fetchModels(brand.id!);
+            }
+          });
+          _saveDraft();
+        },
       ),
     );
   }
@@ -2157,61 +2165,15 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Select Model',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: modelState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : modelState.models.isEmpty
-                  ? const Center(child: Text('No models available'))
-                  : ListView.builder(
-                      itemCount: modelState.models.length,
-                      itemBuilder: (context, index) {
-                        final model = modelState.models[index];
-                        return ListTile(
-                          title: Text(model.displayName),
-                          onTap: () {
-                            setState(() {
-                              _selectedModel = model;
-                              _selectedModelName = model.displayName;
-                            });
-                            _saveDraft();
-                            Navigator.pop(context);
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+      builder: (context) => ModelSelectorBottomSheet(
+        models: modelState.models,
+        onModelSelected: (model) {
+          setState(() {
+            _selectedModel = model;
+            _selectedModelName = model.displayName;
+          });
+          _saveDraft();
+        },
       ),
     );
   }

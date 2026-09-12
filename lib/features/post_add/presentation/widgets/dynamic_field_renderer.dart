@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/post_field.dart';
+import '../../../home/presentation/widgets/generic_selector_bottom_sheet.dart';
 
 class DynamicFieldRenderer extends ConsumerStatefulWidget {
   final PostField field;
@@ -248,6 +249,19 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
       selectedValue = widget.value.toString();
     }
 
+    // Find the selected item label
+    String? selectedLabel;
+    if (selectedValue != null) {
+      try {
+        final fieldItem = widget.field.items.firstWhere(
+          (i) => i.id.toString() == selectedValue,
+        );
+        selectedLabel = fieldItem.nameEn;
+      } catch (e) {
+        // Item not found, ignore
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -290,60 +304,101 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
             ),
           )
         else
-          DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: showError ? Colors.red : theme.dividerColor,
-                  width: showError ? 2 : 1,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: showError ? Colors.red : theme.dividerColor,
-                  width: showError ? 2 : 1,
-                ),
-              ),
-              errorText: widget.errorText,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-            ),
-            value: selectedValue,
-            hint: Text(
-              widget.field.placeholder ?? 'Select ${widget.field.title}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            isDense: true,
-            items: widget.field.items.map((item) {
-              return DropdownMenuItem<String>(
-                value: item.id.toString(),
-                child: SizedBox(
-                  height: 32,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        item.nameEn,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
+          InkWell(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => GenericSelectorBottomSheet(
+                  field: widget.field,
+                  initialValue: selectedValue,
+                  onItemSelected: (value) {
+                    // Select should store as array
+                    widget.onChanged([value]);
+                  },
                 ),
               );
-            }).toList(),
-            onChanged: (value) {
-              // Select should store as array
-              widget.onChanged([value]);
             },
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: showError ? Colors.red : theme.dividerColor,
+                  width: showError ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  // Icon
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: showError
+                          ? Colors.red.withOpacity(0.1)
+                          : theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.arrow_drop_down,
+                      color: showError ? Colors.red : Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Label and value
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.field.title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: showError
+                                ? Colors.red
+                                : theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          selectedLabel ??
+                              (widget.field.placeholder ??
+                                  'Select ${widget.field.title}'),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: selectedLabel != null
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withOpacity(0.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Status indicator
+                  if (selectedLabel != null)
+                    Icon(Icons.check_circle, color: Colors.green, size: 24)
+                  else
+                    Icon(
+                      Icons.arrow_drop_down,
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      size: 24,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        if (widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 4),
+            child: Text(
+              widget.errorText!,
+              style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+            ),
           ),
       ],
     );

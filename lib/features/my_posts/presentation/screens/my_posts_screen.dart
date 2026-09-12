@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 
 class MyPostsScreen extends ConsumerStatefulWidget {
   const MyPostsScreen({super.key});
@@ -187,6 +188,15 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            );
+          },
+        ),
         title: const Text('My Posts', style: TextStyle(color: Colors.white)),
         backgroundColor: AppColors.brand500,
         elevation: 0,

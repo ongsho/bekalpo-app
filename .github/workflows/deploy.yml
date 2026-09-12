@@ -44,3 +44,25 @@ jobs:
           tracks: production          # প্রথমে এটা দিয়ে শুরু করুন — নিচে নোট দেখুন
           status: completed
           whatsNewDirectory: distribution/whatsnew
+
+      - name: Send Discord Notification
+        if: always()
+        run: |
+          if [ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]; then
+            curl -X POST ${{ secrets.DISCORD_WEBHOOK_URL }} \
+              -H "Content-Type: application/json" \
+              -d '{
+                "content": "**Bekalpo App Deploy ${{ job.status }}**",
+                "embeds": [{
+                  "title": "Deploy Status: ${{ job.status }}",
+                  "color": ${{ job.status == 'success' && 65280 || 16711680 }},
+                  "fields": [
+                    {"name": "Workflow", "value": "${{ github.workflow }}", "inline": true},
+                    {"name": "Branch", "value": "${{ github.ref }}", "inline": true},
+                    {"name": "Commit", "value": "${{ github.sha }}", "inline": true},
+                    {"name": "Actor", "value": "${{ github.actor }}", "inline": true}
+                  ],
+                  "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                }]
+              }'
+          fi

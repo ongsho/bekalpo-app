@@ -90,7 +90,9 @@ class Post {
       slug: json['slug'] as String?,
       description: json['description'] as String?,
       images: parseImages(json['image']),
-      fields: json['fields'],
+      fields: json['fields'] != null && json['fields'] is Map
+          ? json['fields'] as Map<String, dynamic>
+          : null,
       categoryId: json['category_id'] as int?,
       brandId: json['brand_id'] as int?,
       modelId: json['model_id'] as int?,
@@ -111,20 +113,28 @@ class Post {
       reviewsAvgRating: json['reviews_avg_rating'],
       approvedReviewsAvgRating: json['approved_reviews_avg_rating'],
       isWishlisted: json['is_wishlisted'] as bool?,
-      category: json['category'] != null
+      category: json['category'] != null && json['category'] is Map
           ? Category.fromJson(json['category'])
           : null,
-      brand: json['brand'] != null ? Brand.fromJson(json['brand']) : null,
-      model: json['model'] != null ? BrandModel.fromJson(json['model']) : null,
-      user: json['user'] != null ? User.fromJson(json['user']) : null,
-      division: json['division'] != null
+      brand: json['brand'] != null && json['brand'] is Map
+          ? Brand.fromJson(json['brand'])
+          : null,
+      model: json['model'] != null && json['model'] is Map
+          ? BrandModel.fromJson(json['model'])
+          : null,
+      user: json['user'] != null && json['user'] is Map
+          ? User.fromJson(json['user'])
+          : null,
+      division: json['division'] != null && json['division'] is Map
           ? Division.fromJson(json['division'])
           : null,
-      counter: json['counter'] != null
+      counter: json['counter'] != null && json['counter'] is Map
           ? PostCounter.fromJson(json['counter'])
           : null,
-      reviews: json['reviews'] as List<dynamic>?,
-      fieldValues: json['field_values'] != null
+      reviews: json['reviews'] != null && json['reviews'] is List
+          ? json['reviews'] as List<dynamic>
+          : null,
+      fieldValues: json['field_values'] != null && json['field_values'] is List
           ? (json['field_values'] as List)
                 .map((e) => FieldValue.fromJson(e))
                 .toList()

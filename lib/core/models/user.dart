@@ -59,7 +59,7 @@ class User {
           : null,
       username: json['username'] as String?,
       postsCount: json['posts_count'] as int?,
-      contacts: json['contacts'] != null
+      contacts: json['contacts'] != null && json['contacts'] is List
           ? (json['contacts'] as List).map((e) => Contact.fromJson(e)).toList()
           : null,
     );

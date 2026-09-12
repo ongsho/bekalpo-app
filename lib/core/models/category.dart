@@ -55,8 +55,10 @@ class Category {
           ? DateTime.parse(json['updated_at'] as String)
           : null,
       postCount: json['post_count'] as int?,
-      parent: json['parent'] != null ? Category.fromJson(json['parent']) : null,
-      children: json['children'] != null
+      parent: json['parent'] != null && json['parent'] is Map
+          ? Category.fromJson(json['parent'])
+          : null,
+      children: json['children'] != null && json['children'] is List
           ? (json['children'] as List).map((e) => Category.fromJson(e)).toList()
           : null,
     );

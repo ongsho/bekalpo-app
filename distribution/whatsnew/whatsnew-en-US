@@ -1,4 +1,4 @@
-New: Related posts & seller posts sections, product description field, Discord notifications
-Enhanced: Null safety across models, API client with delete endpoint, error handling
-UI: Improved ad card, dynamic field rendering
-Fix: Removed duplicate subtitles
+New: Search functionality in brand, model, and dynamic field selectors
+Enhanced: Bottom sheet UI for all selectors, dynamic field visibility logic
+UX: Improved form flow with prerequisite field selection, back button on My Posts page
+Fix: Resolved selector bottom sheet dragging issues

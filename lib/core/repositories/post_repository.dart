@@ -286,4 +286,68 @@ class PostRepository {
       );
     }
   }
+
+  // ── Delete post (move to trash) ───────────────────────────────────────────────
+  Future<void> deletePost(int postId) async {
+    try {
+      await _apiClient.deletePost(postId);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Failed to delete post: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  // ── Get related posts by category ───────────────────────────────────────────────
+  Future<ApiListResponse<Post>> getRelatedPosts({
+    required int categoryId,
+    int perPage = 8,
+  }) async {
+    try {
+      final response = await _apiClient.get(
+        'posts',
+        queryParameters: {'category_id': categoryId, 'per_page': perPage},
+      );
+
+      return ResponseParser.parseList(
+        response.data,
+        (json) => Post.fromJson(json),
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Failed to load related posts: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  // ── Get seller posts by user ───────────────────────────────────────────────────
+  Future<ApiListResponse<Post>> getSellerPosts({
+    required int userId,
+    int perPage = 4,
+  }) async {
+    try {
+      final response = await _apiClient.get(
+        'posts',
+        queryParameters: {'user_id': userId, 'per_page': perPage},
+      );
+
+      return ResponseParser.parseList(
+        response.data,
+        (json) => Post.fromJson(json),
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Failed to load seller posts: $e',
+        originalError: e,
+      );
+    }
+  }
 }

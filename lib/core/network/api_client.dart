@@ -465,6 +465,19 @@ class ApiClient {
       cancelToken: cancelToken,
     );
   }
+
+  Future<Response> deletePost(
+    int postId, {
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    return _dio.post(
+      'posts/status/trash/$postId',
+      data: {'post_id': postId},
+      options: options,
+      cancelToken: cancelToken,
+    );
+  }
 }
 
 /// Retry interceptor for Dio

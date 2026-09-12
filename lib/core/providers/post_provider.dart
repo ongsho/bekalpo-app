@@ -339,6 +339,25 @@ class MyPostsNotifier extends AsyncNotifier<MyPostsState> {
   Future<void> refresh() async {
     await loadMyPosts();
   }
+
+  Future<void> deletePost(int postId) async {
+    try {
+      final repo = ref.read(postRepositoryProvider);
+      await repo.deletePost(postId);
+
+      // Remove the deleted post from the state
+      final current = state.valueOrNull;
+      if (current != null) {
+        final updatedPosts = current.posts
+            .where((post) => post.id != postId)
+            .toList();
+        state = AsyncData(current.copyWith(posts: updatedPosts));
+      }
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
 }
 
 final myPostsProvider = AsyncNotifierProvider<MyPostsNotifier, MyPostsState>(
@@ -438,3 +457,21 @@ final wishlistedProvider = StateProvider.family<bool, int>(
 final wishlistBusyProvider = StateProvider.family<bool, int>(
   (ref, postId) => false,
 );
+
+// ── Related Posts ─────────────────────────────────────────────────────────────
+final relatedPostsProvider = FutureProvider.family<ApiListResponse<Post>, int>((
+  ref,
+  categoryId,
+) async {
+  final repository = ref.watch(postRepositoryProvider);
+  return repository.getRelatedPosts(categoryId: categoryId);
+});
+
+// ── Seller Posts ───────────────────────────────────────────────────────────────
+final sellerPostsProvider = FutureProvider.family<ApiListResponse<Post>, int>((
+  ref,
+  userId,
+) async {
+  final repository = ref.watch(postRepositoryProvider);
+  return repository.getSellerPosts(userId: userId);
+});

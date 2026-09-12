@@ -43,6 +43,13 @@ class ResponseParser {
 
           if (data is Map<String, dynamic>) {
             dataMap = data;
+          } else if (data is List) {
+            // Handle case where data is a list (e.g., empty or error list)
+            throw ParseException(
+              message:
+                  'Invalid data format: expected Map but got List. Post data may be incomplete.',
+              originalError: data,
+            );
           } else {
             throw ParseException(
               message: 'Invalid data format: expected Map',
@@ -53,6 +60,13 @@ class ResponseParser {
           // Direct object response
           dataMap = response;
         }
+      } else if (response is List) {
+        // Handle case where entire response is a list instead of expected Map
+        throw ParseException(
+          message:
+              'Invalid response format: expected Map but got List. Post data may be incomplete or not found.',
+          originalError: response,
+        );
       } else {
         throw ParseException(
           message: 'Invalid response format: expected Map',

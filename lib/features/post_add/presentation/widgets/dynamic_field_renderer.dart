@@ -160,7 +160,7 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
 
   Widget _buildRadioField(ThemeData theme) {
     final showError = widget.showValidationError;
-    
+
     // Handle radio value - extract from array if needed
     String? selectedValue;
     if (widget.value is List) {
@@ -212,13 +212,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                subtitle: item.nameBn != null
-                    ? Text(
-                        item.nameBn!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    : null,
                 value: item.id.toString(),
                 groupValue: selectedValue,
                 onChanged: (value) {
@@ -243,7 +236,7 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
 
   Widget _buildSelectField(ThemeData theme) {
     final showError = widget.showValidationError;
-    
+
     // Handle select value - extract from array if needed
     String? selectedValue;
     if (widget.value is List) {
@@ -342,16 +335,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 14),
                       ),
-                      if (item.nameBn != null)
-                        Text(
-                          item.nameBn!,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
                     ],
                   ),
                 ),
@@ -416,24 +399,19 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                 // Handle checkbox value - convert to List<String> if needed
                 List<String> currentList = [];
                 if (widget.value is List) {
-                  currentList = (widget.value as List).map((e) => e.toString()).toList();
+                  currentList = (widget.value as List)
+                      .map((e) => e.toString())
+                      .toList();
                 }
-                
+
                 final isSelected = currentList.contains(item.id.toString());
-                
+
                 return CheckboxListTile(
                   title: Text(
                     item.nameEn,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  subtitle: item.nameBn != null
-                      ? Text(
-                          item.nameBn!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        )
-                      : null,
                   value: isSelected,
                   onChanged: (checked) {
                     if (checked == true) {

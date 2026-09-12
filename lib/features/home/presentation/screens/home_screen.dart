@@ -11,6 +11,7 @@ import '../widgets/location_selector_bottom_sheet.dart';
 import '../widgets/category_selector_bottom_sheet.dart';
 import '../../data/models/ad_model.dart';
 import '../../../../core/models/category.dart';
+import '../../../../core/models/post.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/providers/category_provider.dart';
 import '../../../../core/providers/location_provider.dart';
@@ -171,11 +172,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     sliver: sliver,
   );
 
-  Widget _adSliverGrid(List<AdModel> ads) => _hpad(
+  Widget _adSliverGrid(List<AdModel> ads, List<Post> posts) => _hpad(
     SliverGrid(
       delegate: SliverChildBuilderDelegate(
         (context, index) => RepaintBoundary(
-          child: AdCard(ad: ads[index], onTap: () => _onAdTap(ads[index])),
+          child: AdCard(
+            ad: ads[index],
+            postId: posts[index].id,
+            onTap: () => _onAdTap(ads[index]),
+          ),
         ),
         childCount: ads.length,
       ),
@@ -369,7 +374,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ],
       data: (postsState) {
-        final ads = postsState.posts.map((p) => p.toAdModel()).toList();
+        final posts = postsState.posts;
+        final ads = posts.map((p) => p.toAdModel()).toList();
 
         if (ads.isEmpty) {
           return [
@@ -441,7 +447,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-          _adSliverGrid(ads),
+          _adSliverGrid(ads, posts),
 
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
 

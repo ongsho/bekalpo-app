@@ -56,17 +56,28 @@ class PostSpecification extends StatelessWidget {
         displayValue = post.brand?.nameEn ?? '';
       } else if (field.fieldSlug == 'model') {
         displayValue = post.model?.nameEn ?? '';
-      } else if (field.valueIds != null &&
-          field.valueIds!.isNotEmpty &&
-          field.items != null) {
-        selectedItems = field.items!
-            .where((item) => field.valueIds!.contains(item.id))
-            .toList();
-        displayValue = selectedItems
-            .map((item) => item.nameEn ?? '')
-            .join(', ');
+      } else if (field.valueIds != null && field.valueIds!.isNotEmpty) {
+        // Handle value_ids for select/radio/checkbox fields
+        if (field.items != null) {
+          selectedItems = field.items!
+              .where(
+                (item) =>
+                    field.valueIds!.contains(item.id.toString()) ||
+                    field.valueIds!.contains(item.id),
+              )
+              .toList();
+          displayValue = selectedItems
+              .map((item) => item.nameEn ?? '')
+              .join(', ');
+        } else {
+          // Fallback: convert value_ids to string representation
+          displayValue = field.valueIds!.map((id) => id.toString()).join(', ');
+        }
+      } else if (field.value != null && field.value!.isNotEmpty) {
+        // Handle direct value for text fields
+        displayValue = field.value!;
       } else {
-        displayValue = field.value ?? '';
+        continue; // Skip empty fields
       }
 
       if (displayValue.isEmpty) continue;
@@ -104,7 +115,7 @@ class PostSpecification extends StatelessWidget {
                         children: selectedItems
                             .map(
                               (item) => BadgeChip(
-                                text: item.nameEn ?? '',
+                                text: item.nameEn ?? item.id.toString(),
                                 background: AppColors.brand500.withOpacity(
                                   0.08,
                                 ),

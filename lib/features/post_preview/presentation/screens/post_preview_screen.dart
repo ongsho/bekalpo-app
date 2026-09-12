@@ -5,6 +5,7 @@ import '../../../../core/models/post.dart';
 import '../../../../core/network/exceptions/api_exception.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../shared/presentation/widgets/connectivity_wrapper.dart';
 import '../widgets/post_gallery.dart';
 import '../widgets/post_price_card.dart';
@@ -12,6 +13,8 @@ import '../widgets/post_safety_tips.dart';
 import '../widgets/post_seller_card.dart';
 import '../widgets/post_specification.dart';
 import '../widgets/post_title_meta.dart';
+import '../widgets/related_posts_section.dart';
+import '../widgets/seller_posts_section.dart';
 import '../widgets/shared/section_card.dart';
 
 class PostPreviewScreen extends ConsumerWidget {
@@ -125,22 +128,46 @@ class PostPreviewScreen extends ConsumerWidget {
     String errorMessage = 'Failed to load post';
     if (error is ApiException) errorMessage = error.message;
 
+    // Check if this is an incomplete post error
+    final isIncompletePost =
+        errorMessage.contains('incomplete') ||
+        errorMessage.contains('List instead of expected Map');
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.grey.shade400),
+            Icon(
+              isIncompletePost ? Icons.hourglass_empty : Icons.error_outline,
+              size: 48,
+              color: isIncompletePost
+                  ? Colors.orange.shade400
+                  : Colors.grey.shade400,
+            ),
             const SizedBox(height: 16),
             Text(
-              errorMessage,
+              isIncompletePost ? 'Post is being processed' : errorMessage,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
+            if (isIncompletePost) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Please wait a moment and try again',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.5),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () => ref.invalidate(postBySlugProvider(slug)),
@@ -225,6 +252,19 @@ class PostPreviewScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           const PostSafetyTips(),
+
+          const SizedBox(height: 8),
+
+          // Related Posts Section
+          RelatedPostsSection(
+            categoryId: post.categoryId,
+            currentPostSlug: post.slug,
+          ),
+
+          const SizedBox(height: 8),
+
+          // Seller Posts Section
+          SellerPostsSection(userId: post.userId, currentPostSlug: post.slug),
 
           const SizedBox(height: 24),
         ],

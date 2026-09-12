@@ -239,7 +239,8 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
       );
     }
 
-    final ads = state.results.map((p) => p.toAdModel()).toList();
+    final posts = state.results;
+    final ads = posts.map((p) => p.toAdModel()).toList();
 
     return CustomScrollView(
       controller: _scrollController,
@@ -251,6 +252,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
               (context, index) => RepaintBoundary(
                 child: AdCard(
                   ad: ads[index],
+                  postId: posts[index].id,
                   onTap: () => _onAdTap(ads[index]),
                 ),
               ),

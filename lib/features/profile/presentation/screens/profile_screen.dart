@@ -957,6 +957,7 @@ class _MyPostsContent extends ConsumerWidget {
                   return RepaintBoundary(
                     child: AdCard(
                       ad: ads[index],
+                      postId: previewState.posts[index].id,
                       onTap: () => _onAdTap(ads[index], context),
                     ),
                   );

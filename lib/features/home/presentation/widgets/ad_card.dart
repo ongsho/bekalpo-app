@@ -2,20 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/models/ad_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/providers/post_provider.dart';
+import '../../../../core/models/post.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AdCard extends StatelessWidget {
+class AdCard extends ConsumerWidget {
   final AdModel ad;
   final VoidCallback? onTap;
   final VoidCallback? onFavourite;
+  final int? postId;
 
-  const AdCard({super.key, required this.ad, this.onTap, this.onFavourite});
+  const AdCard({
+    super.key,
+    required this.ad,
+    this.onTap,
+    this.onFavourite,
+    this.postId,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        // Register click count API call
+        if (postId != null) {
+          ref.read(postRepositoryProvider).registerClick(postId!).catchError((
+            _,
+          ) {
+            // Silently ignore errors for click tracking
+          });
+        }
+        onTap?.call();
+      },
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
@@ -141,7 +161,7 @@ class AdCard extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     ad.title ?? '',
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
@@ -219,9 +239,10 @@ class AdCard extends StatelessWidget {
 
 class AdsGrid extends StatelessWidget {
   final List<AdModel> ads;
+  final List<Post>? posts;
   final void Function(AdModel)? onAdTap;
 
-  const AdsGrid({super.key, required this.ads, this.onAdTap});
+  const AdsGrid({super.key, required this.ads, this.posts, this.onAdTap});
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +255,10 @@ class AdsGrid extends StatelessWidget {
       itemCount: ads.length,
       itemBuilder: (context, index) {
         final ad = ads[index];
-        return AdCard(ad: ad, onTap: () => onAdTap?.call(ad));
+        final postId = posts != null && index < posts!.length
+            ? posts![index].id
+            : null;
+        return AdCard(ad: ad, postId: postId, onTap: () => onAdTap?.call(ad));
       },
     );
   }

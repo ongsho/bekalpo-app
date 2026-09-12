@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../home/presentation/widgets/ad_card.dart';
 import '../../../home/data/models/ad_model.dart';
 import '../../../../app/router/app_routes.dart';
@@ -54,28 +55,47 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
 
   void _onAdTap(AdModel ad) {
     if (ad.slug?.isNotEmpty == true) {
-      // Show a dialog to choose between preview and edit
-      showDialog(
+      // Show bottom sheet with options
+      showModalBottomSheet(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Choose Action'),
-          content: const Text('What would you like to do with this post?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, AppRoutes.postPreview, arguments: ad.slug);
-              },
-              child: const Text('Preview'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _navigateToEdit(ad);
-              },
-              child: const Text('Edit'),
-            ),
-          ],
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.visibility_outlined),
+                title: const Text('Preview'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.postPreview,
+                    arguments: ad.slug,
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _navigateToEdit(ad);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteConfirmation(ad);
+                },
+              ),
+            ],
+          ),
         ),
       );
     } else {
@@ -90,22 +110,73 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
     final myPostsState = ref.read(myPostsProvider).valueOrNull;
     if (myPostsState != null) {
       try {
-        final post = myPostsState.posts.firstWhere(
-          (p) => p.slug == ad.slug,
-        );
-        
+        final post = myPostsState.posts.firstWhere((p) => p.slug == ad.slug);
+
         // Just pass the postId, let the screen load data from API
         final postId = post.id != null ? post.id.toString() : '';
-        
-        Navigator.pushNamed(
-          context,
-          AppRoutes.postAdd,
-          arguments: postId,
-        );
+
+        Navigator.pushNamed(context, AppRoutes.postAdd, arguments: postId);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post not found')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Post not found')));
+      }
+    }
+  }
+
+  void _showDeleteConfirmation(AdModel ad) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text(
+          'Are you sure you want to delete this post? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePost(ad);
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deletePost(AdModel ad) async {
+    // Get the post data from the provider
+    final myPostsState = ref.read(myPostsProvider).valueOrNull;
+    if (myPostsState != null) {
+      try {
+        final post = myPostsState.posts.firstWhere((p) => p.slug == ad.slug);
+
+        if (post.id != null) {
+          try {
+            await ref.read(myPostsProvider.notifier).deletePost(post.id!);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Post deleted successfully')),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to delete post: $e')),
+              );
+            }
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Post not found')));
       }
     }
   }
@@ -116,9 +187,10 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Posts'),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        title: const Text('My Posts', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.brand500,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: myPostsAsync.when(
@@ -185,6 +257,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
                   return RepaintBoundary(
                     child: AdCard(
                       ad: ads[index],
+                      postId: myPostsState.posts[index].id,
                       onTap: () => _onAdTap(ads[index]),
                     ),
                   );

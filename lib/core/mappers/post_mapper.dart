@@ -42,7 +42,7 @@ extension PostMapper on Post {
   // ── Price (from dynamic fieldValues) ─────────────────────────────────────
   String get price {
     if (fieldValues == null || fieldValues!.isEmpty) return '0';
-    
+
     try {
       final priceField = fieldValues!.firstWhere(
         (f) => f.fieldSlug == 'price',
@@ -56,7 +56,7 @@ extension PostMapper on Post {
 
   bool get isPriceNegotiable {
     if (fieldValues == null || fieldValues!.isEmpty) return false;
-    
+
     try {
       final priceTypeField = fieldValues!.firstWhere(
         (f) => f.fieldSlug == 'price_type',
@@ -74,10 +74,10 @@ extension PostMapper on Post {
   String get categoryPath =>
       '${category?.parent?.nameEn ?? "Vehicles"} / ${category?.nameEn ?? "Car"}';
 
-  // ── "isNew" badge (updated within last 7 days) ───────────────────────────
+  // ── "isNew" badge (updated within last 1 day) ───────────────────────────
   bool get isRecentlyUpdated =>
       updatedAt != null &&
-      updatedAt!.isAfter(DateTime.now().subtract(const Duration(days: 7)));
+      updatedAt!.isAfter(DateTime.now().subtract(const Duration(days: 1)));
 
   // ── Card model for home/listing grids ────────────────────────────────────
   AdModel toAdModel() {

@@ -45,6 +45,47 @@ samples, guidance on mobile development, and a full API reference.
 - Added integration example for in-app update service
 - Updated app version to 1.3.0+9
 
+## Distribution
+
+### Building for Release
+
+#### Android
+```bash
+flutter build apk --release
+flutter build appbundle --release
+```
+
+#### iOS
+```bash
+flutter build ios --release
+```
+
+#### Windows
+```bash
+flutter build windows --release
+```
+
+#### macOS
+```bash
+flutter build macos --release
+```
+
+### Distribution Channels
+
+- **Google Play Store**: Upload the app bundle (`build/app/outputs/bundle/release/app-release.aab`) to the Google Play Console
+- **Apple App Store**: Use Xcode to upload the iOS build (`build/ios/iphoneos/Runner.app`) to App Store Connect
+- **Microsoft Store**: Package the Windows build for Microsoft Store submission
+- **Direct Distribution**: Share the APK file (`build/app/outputs/flutter-apk/app-release.apk`) for Android side-loading
+
+### Version Management
+
+- Version format: `major.minor.patch+build_number`
+- Update version in `pubspec.yaml` before each release
+- Both version name and build number are used by different platforms:
+  - Android: versionName (e.g., 1.5.6) and versionCode (e.g., 21)
+  - iOS: CFBundleShortVersionString and CFBundleVersion
+  - Windows: product version and file version
+
 ## Development
 
 ### Testing In-App Updates

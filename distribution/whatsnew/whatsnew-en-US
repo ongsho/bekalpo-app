@@ -1,4 +1,6 @@
-New: Search functionality in brand, model, and dynamic field selectors
-Enhanced: Bottom sheet UI for all selectors, dynamic field visibility logic
-UX: Improved form flow with prerequisite field selection, back button on My Posts page
-Fix: Resolved selector bottom sheet dragging issues
+New: Rating and review system for posts
+New: Share functionality to share posts with others
+Enhanced: Reviews section on post preview with rating display
+Improved: Grid layout aspect ratios for better card display
+Fixed: Text overflow in gallery image counter
+Updated: App version to 1.5.6

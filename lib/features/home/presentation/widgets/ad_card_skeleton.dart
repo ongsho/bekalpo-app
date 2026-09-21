@@ -13,7 +13,7 @@ class AdCardSkeleton extends StatelessWidget {
       itemCount: itemCount,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.72,
+        childAspectRatio: 0.68,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -49,18 +49,18 @@ class _AdCardSkeleton extends StatelessWidget {
             child: Container(color: Colors.grey.shade200),
           ),
           Padding(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _box(w: 48, h: 9),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 _box(w: double.infinity, h: 11),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 _box(w: 100, h: 11),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 _box(w: 70, h: 9),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _box(w: 60, h: 13),
               ],
             ),

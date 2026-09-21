@@ -21,7 +21,7 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Theme.of(context).colorScheme.surface,
+      color: Theme.of(context).scaffoldBackgroundColor,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

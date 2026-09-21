@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/post.dart';
 import '../../../../core/network/exceptions/api_exception.dart';
@@ -15,6 +16,8 @@ import '../widgets/post_specification.dart';
 import '../widgets/post_title_meta.dart';
 import '../widgets/related_posts_section.dart';
 import '../widgets/seller_posts_section.dart';
+import '../widgets/rating_dialog.dart';
+import '../widgets/reviews_section.dart';
 import '../widgets/shared/section_card.dart';
 
 class PostPreviewScreen extends ConsumerWidget {
@@ -53,20 +56,24 @@ class PostPreviewScreen extends ConsumerWidget {
                     final wishlisted = postId != null
                         ? ref.watch(wishlistedProvider(postId))
                         : false;
-                    return IconButton(
-                      icon: Icon(
-                        wishlisted ? Icons.favorite : Icons.favorite_border,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => _toggleWishlist(context, ref, post),
+                    return Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            wishlisted ? Icons.favorite : Icons.favorite_border,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => _toggleWishlist(context, ref, post),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.share_outlined),
+                          color: Colors.white,
+                          onPressed: () => _sharePost(post),
+                        ),
+                      ],
                     );
                   },
                   orElse: () => const SizedBox.shrink(),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share_outlined),
-                  color: Colors.white,
-                  onPressed: () {},
                 ),
               ],
             ),
@@ -122,6 +129,34 @@ class PostPreviewScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  void _showRatingDialog(BuildContext context, WidgetRef ref, Post post) {
+    final postId = post.id;
+    if (postId == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => RatingDialog(postId: postId),
+    ).then((result) {
+      if (result == true) {
+        ref.invalidate(postBySlugProvider(slug));
+      }
+    });
+  }
+
+  void _sharePost(Post post) {
+    final title = post.title ?? 'No title';
+    final price = post.price;
+    final location = post.location;
+
+    final shareText =
+        '$title\n'
+        'Price: ৳$price\n'
+        'Location: $location\n'
+        'Check it out on Bekalpo!';
+
+    Share.share(shareText, subject: title);
   }
 
   Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
@@ -215,6 +250,8 @@ class PostPreviewScreen extends ConsumerWidget {
             clicks: post.counter?.clicks,
             rating: post.approvedReviewsAvgRating,
             onToggleWishlist: () => _toggleWishlist(context, ref, post),
+            onRate: () => _showRatingDialog(context, ref, post),
+            onShare: () => _sharePost(post),
           ),
 
           const SizedBox(height: 8),
@@ -252,6 +289,15 @@ class PostPreviewScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           const PostSafetyTips(),
+
+          const SizedBox(height: 8),
+
+          // Reviews Section
+          ReviewsSection(
+            reviews: post.reviews,
+            approvedReviewsCount: post.approvedReviewsCount,
+            approvedReviewsAvgRating: post.approvedReviewsAvgRating,
+          ),
 
           const SizedBox(height: 8),
 

@@ -20,6 +20,8 @@ class PostPriceCard extends ConsumerWidget {
   final int? clicks;
   final double? rating;
   final Future<void> Function() onToggleWishlist;
+  final VoidCallback? onRate;
+  final VoidCallback? onShare;
 
   const PostPriceCard({
     super.key,
@@ -31,6 +33,8 @@ class PostPriceCard extends ConsumerWidget {
     required this.clicks,
     required this.rating,
     required this.onToggleWishlist,
+    this.onRate,
+    this.onShare,
   });
 
   @override
@@ -121,7 +125,7 @@ class PostPriceCard extends ConsumerWidget {
               _ActionTextButton(
                 icon: Icons.ios_share_outlined,
                 label: 'Share',
-                onTap: () {},
+                onTap: onShare,
               ),
               _ActionTextButton(
                 icon: wishlisted ? Icons.favorite : Icons.favorite_border,
@@ -132,7 +136,7 @@ class PostPriceCard extends ConsumerWidget {
               _ActionTextButton(
                 icon: Icons.star_border_rounded,
                 label: 'Rate',
-                onTap: () {},
+                onTap: onRate,
               ),
             ],
           ),
@@ -145,13 +149,13 @@ class PostPriceCard extends ConsumerWidget {
 class _ActionTextButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? color;
 
   const _ActionTextButton({
     required this.icon,
     required this.label,
-    required this.onTap,
+    this.onTap,
     this.color,
   });
 
@@ -159,7 +163,7 @@ class _ActionTextButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
     return InkWell(
-      onTap: onTap,
+      onTap: onTap ?? () {},
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

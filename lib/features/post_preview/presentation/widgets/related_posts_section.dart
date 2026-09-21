@@ -54,7 +54,7 @@ class RelatedPostsSection extends ConsumerWidget {
             padding: const EdgeInsets.all(14),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.72,
+              childAspectRatio: 0.6,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
             ),

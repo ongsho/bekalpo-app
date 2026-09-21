@@ -350,4 +350,36 @@ class PostRepository {
       );
     }
   }
+
+  // ── Submit/update rating for a post ─────────────────────────────────────────────
+  Future<ApiResponse<Post>> submitRating({
+    required int postId,
+    required int rating,
+    String? comment,
+    int? replyTo,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        'posts/rating',
+        data: {
+          'post_id': postId,
+          'rating': rating,
+          if (comment != null) 'comment': comment,
+          if (replyTo != null) 'reply_to': replyTo,
+        },
+      );
+
+      return ResponseParser.parseSingle(
+        response.data['post'],
+        (json) => Post.fromJson(json),
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Failed to submit rating: $e',
+        originalError: e,
+      );
+    }
+  }
 }

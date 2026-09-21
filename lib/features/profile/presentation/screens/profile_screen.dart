@@ -948,7 +948,7 @@ class _MyPostsContent extends ConsumerWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.72,
+                  childAspectRatio: 0.68,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                 ),
@@ -1010,7 +1010,7 @@ class _SkeletonLoader extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.72,
+          childAspectRatio: 0.68,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
         ),

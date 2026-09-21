@@ -5,6 +5,7 @@ import 'package:bekalpo/core/models/user.dart';
 import 'package:bekalpo/core/models/division.dart';
 import 'package:bekalpo/core/models/post_counter.dart';
 import 'package:bekalpo/core/models/field_value.dart';
+import 'package:bekalpo/core/models/review.dart';
 
 class Post {
   final int? id;
@@ -36,7 +37,7 @@ class Post {
   final User? user;
   final Division? division;
   final PostCounter? counter;
-  final List<dynamic>? reviews;
+  final List<Review>? reviews;
   final List<FieldValue>? fieldValues;
 
   Post({
@@ -132,7 +133,7 @@ class Post {
           ? PostCounter.fromJson(json['counter'])
           : null,
       reviews: json['reviews'] != null && json['reviews'] is List
-          ? json['reviews'] as List<dynamic>
+          ? (json['reviews'] as List).map((e) => Review.fromJson(e)).toList()
           : null,
       fieldValues: json['field_values'] != null && json['field_values'] is List
           ? (json['field_values'] as List)

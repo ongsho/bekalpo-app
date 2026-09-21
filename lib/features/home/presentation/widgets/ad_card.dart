@@ -3,6 +3,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/models/ad_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/providers/post_provider.dart';
+import '../../../../core/repositories/post_repository.dart';
 import '../../../../core/models/post.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -146,19 +147,21 @@ class AdCard extends ConsumerWidget {
               ],
             ),
             Padding(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     ad.category ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10,
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Text(
                     ad.title ?? '',
                     maxLines: 1,
@@ -169,7 +172,7 @@ class AdCard extends ConsumerWidget {
                       height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Row(
                     children: [
                       Icon(
@@ -191,17 +194,21 @@ class AdCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Text(
                     ad.timeAgo ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         '৳${ad.price}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -218,6 +225,8 @@ class AdCard extends ConsumerWidget {
                           const SizedBox(width: 3),
                           Text(
                             '${ad.views}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.grey.shade500,

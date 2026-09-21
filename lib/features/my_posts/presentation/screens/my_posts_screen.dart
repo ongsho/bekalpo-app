@@ -257,7 +257,7 @@ class _MyPostsScreenState extends ConsumerState<MyPostsScreen> {
               padding: const EdgeInsets.all(14),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.72,
+                childAspectRatio: 0.68,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),

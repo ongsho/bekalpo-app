@@ -1196,6 +1196,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     children: [
                       Text(
                         'Contact Number',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -1205,6 +1207,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                       const SizedBox(height: 4),
                       Text(
                         userPhone,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -1279,6 +1283,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                       children: [
                         Text(
                           'Contact Number',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -1341,6 +1347,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   Expanded(
                     child: Text(
                       'Select Contact Number',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,

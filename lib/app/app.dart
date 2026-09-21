@@ -3,7 +3,6 @@ import 'package:bekalpo/core/theme/app_theme.dart';
 import 'package:bekalpo/core/providers/theme_provider.dart';
 import 'package:bekalpo/core/network/app_update_service.dart';
 import 'package:bekalpo/features/bottom_nav/presentation/screens/main_nav_screen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_routes.dart';

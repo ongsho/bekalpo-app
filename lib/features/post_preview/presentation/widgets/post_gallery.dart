@@ -113,6 +113,8 @@ class _PostGalleryState extends State<PostGallery> {
                 ),
                 child: Text(
                   '${_index + 1} / ${images.length}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,

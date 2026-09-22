@@ -2,16 +2,41 @@
 import 'package:bekalpo/core/theme/app_theme.dart';
 import 'package:bekalpo/core/providers/theme_provider.dart';
 import 'package:bekalpo/core/network/app_update_service.dart';
+import 'package:bekalpo/core/network/deep_link_service.dart';
 import 'package:bekalpo/features/bottom_nav/presentation/screens/main_nav_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_routes.dart';
 
-class App extends ConsumerWidget {
+class App extends ConsumerStatefulWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<App> createState() => _AppState();
+}
+
+class _AppState extends ConsumerState<App> {
+  // Global navigator key for deep link navigation
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  // Deep link service instance
+  late final DeepLinkService _deepLinkService;
+
+  @override
+  void initState() {
+    super.initState();
+    _deepLinkService = DeepLinkService(navigatorKey);
+    _deepLinkService.initialize();
+  }
+
+  @override
+  void dispose() {
+    _deepLinkService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final appThemeMode = ref.watch(themeProvider);
 
     final themeMode = switch (appThemeMode) {
@@ -23,6 +48,7 @@ class App extends ConsumerWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Bekalpo',
+      navigatorKey: navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,

@@ -6,7 +6,6 @@ import '../../../../core/models/post.dart';
 import '../../../../core/network/exceptions/api_exception.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
-import '../../../../app/router/app_routes.dart';
 import '../../../shared/presentation/widgets/connectivity_wrapper.dart';
 import '../widgets/post_gallery.dart';
 import '../widgets/post_price_card.dart';
@@ -149,11 +148,13 @@ class PostPreviewScreen extends ConsumerWidget {
     final title = post.title ?? 'No title';
     final price = post.price;
     final location = post.location;
+    final slug = post.slug;
 
     final shareText =
         '$title\n'
         'Price: ৳$price\n'
         'Location: $location\n'
+        '${slug != null ? 'https://bekalpo.com/ads/$slug\n' : ''}'
         'Check it out on Bekalpo!';
 
     Share.share(shareText, subject: title);

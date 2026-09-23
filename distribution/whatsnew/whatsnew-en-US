@@ -2,4 +2,6 @@ New: Android App Links for deep linking to posts
 New: Share posts with actual URLs (https://bekalpo.com/ads/{slug})
 Enhanced: Deep link handling for both cold and warm app starts
 Improved: Direct navigation to post preview from shared links
-Updated: App version to 1.5.7
+Fixed: Data type handling for boolean fields in models
+Fixed: Response parser to handle both bool and int success fields
+Updated: App version to 1.5.8

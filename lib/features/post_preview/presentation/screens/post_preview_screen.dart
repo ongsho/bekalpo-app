@@ -155,6 +155,7 @@ class PostPreviewScreen extends ConsumerWidget {
         'Price: ৳$price\n'
         'Location: $location\n'
         '${slug != null ? 'https://bekalpo.com/ads/$slug\n' : ''}'
+        '${slug != null ? 'bekalpo://ads/$slug\n' : ''}'
         'Check it out on Bekalpo!';
 
     Share.share(shareText, subject: title);

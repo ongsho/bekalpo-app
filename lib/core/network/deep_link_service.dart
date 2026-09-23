@@ -63,27 +63,32 @@ class DeepLinkService {
       );
     }
 
+    String? slug;
+
     // Check if the URI matches our expected pattern: https://bekalpo.com/ads/{slug}
     if (uri.scheme == 'https' &&
         uri.host == 'bekalpo.com' &&
         uri.path.startsWith('/ads/')) {
       // Extract slug from path: /ads/{slug} -> {slug}
-      final slug = uri.path.substring('/ads/'.length);
+      slug = uri.path.substring('/ads/'.length);
+    }
+    // Check for custom URL scheme: bekalpo://ads/{slug}
+    else if (uri.scheme == 'bekalpo' &&
+        uri.host == 'ads' &&
+        uri.path.isNotEmpty) {
+      // Extract slug from path: /{slug} -> {slug}
+      slug = uri.path.startsWith('/') ? uri.path.substring(1) : uri.path;
+    }
 
-      if (kDebugMode) {
-        debugPrint('DeepLinkService: Extracted slug: $slug');
-      }
+    if (kDebugMode) {
+      debugPrint('DeepLinkService: Extracted slug: $slug');
+    }
 
-      if (slug.isNotEmpty) {
-        _navigateToPost(slug);
-      } else {
-        if (kDebugMode) {
-          debugPrint('DeepLinkService: Slug is empty, skipping navigation');
-        }
-      }
+    if (slug != null && slug.isNotEmpty) {
+      _navigateToPost(slug);
     } else {
       if (kDebugMode) {
-        debugPrint('DeepLinkService: URI does not match expected pattern');
+        debugPrint('DeepLinkService: Slug is empty, skipping navigation');
       }
     }
   }

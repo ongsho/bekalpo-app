@@ -1,6 +1,5 @@
-New: Rating and review system for posts
-New: Share functionality to share posts with others
-Enhanced: Reviews section on post preview with rating display
-Improved: Grid layout aspect ratios for better card display
-Fixed: Text overflow in gallery image counter
-Updated: App version to 1.5.6
+New: Android App Links for deep linking to posts
+New: Share posts with actual URLs (https://bekalpo.com/ads/{slug})
+Enhanced: Deep link handling for both cold and warm app starts
+Improved: Direct navigation to post preview from shared links
+Updated: App version to 1.5.7

@@ -25,7 +25,11 @@ class ResponseParser {
         // Check if response has standard API wrapper
         if (response.containsKey('data')) {
           // Response structure: {data: {...}, success: bool, message: string}
-          final success = response['success'] as bool? ?? true;
+          // Handle both bool and int for success field
+          final successValue = response['success'];
+          final success = successValue is bool
+              ? successValue
+              : (successValue is int ? successValue == 1 : true);
           final message = response['message'] as String?;
           final errorCode = response['error_code'] as String?;
           final data = response['data'];
@@ -117,7 +121,17 @@ class ResponseParser {
         dataList = response;
       } else if (response is Map<String, dynamic>) {
         // Check if response has standard API wrapper
-        success = response['success'] as bool? ?? true;
+        // Handle both bool and int for success field
+        final successValue = response['success'];
+        if (successValue is bool) {
+          success = successValue;
+        } else if (successValue is int) {
+          success = successValue == 1;
+        } else {
+          success =
+              true; // Default to true if success field is missing or invalid
+        }
+
         message = response['message'] as String?;
         errorCode = response['error_code'] as String?;
 
@@ -181,6 +195,17 @@ class ResponseParser {
           try {
             pagination = PaginationMeta.fromJson(
               Map<String, dynamic>.from(response['pagination']),
+            );
+          } catch (e) {
+            // Pagination parsing failed, continue without it
+            pagination = null;
+          }
+        } else if (response.containsKey('current_page') ||
+            response.containsKey('total')) {
+          // Handle pagination at root level (Laravel-style pagination)
+          try {
+            pagination = PaginationMeta.fromJson(
+              Map<String, dynamic>.from(response),
             );
           } catch (e) {
             // Pagination parsing failed, continue without it

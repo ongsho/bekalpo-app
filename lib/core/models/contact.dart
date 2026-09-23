@@ -28,7 +28,9 @@ class Contact {
       verifiedAt: json['verified_at'] != null
           ? DateTime.parse(json['verified_at'] as String)
           : null,
-      isPrimary: json['is_primary'] as bool?,
+      isPrimary: json['is_primary'] is bool
+          ? json['is_primary'] as bool
+          : (json['is_primary'] is int ? json['is_primary'] == 1 : null),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

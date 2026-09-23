@@ -84,63 +84,74 @@ class Post {
       return null;
     }
 
-    return Post(
-      id: json['id'] as int?,
-      userId: json['user_id'] as int?,
-      title: json['title'] as String?,
-      slug: json['slug'] as String?,
-      description: json['description'] as String?,
-      images: parseImages(json['image']),
-      fields: json['fields'] != null && json['fields'] is Map
-          ? json['fields'] as Map<String, dynamic>
-          : null,
-      categoryId: json['category_id'] as int?,
-      brandId: json['brand_id'] as int?,
-      modelId: json['model_id'] as int?,
-      thanaId: json['thana_id'] as int?,
-      isRecommend: json['is_recommend'] as int?,
-      isFeatured: json['is_featured'] as int?,
-      status: json['status'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-      reviewsCount: json['reviews_count'] as int?,
-      approvedReviewsCount: json['approved_reviews_count'] as int?,
-      wishlistsCount: json['wishlists_count'] as int?,
-      wishlistsThisMonthCount: json['wishlists_this_month_count'] as int?,
-      reviewsAvgRating: json['reviews_avg_rating'],
-      approvedReviewsAvgRating: json['approved_reviews_avg_rating'],
-      isWishlisted: json['is_wishlisted'] as bool?,
-      category: json['category'] != null && json['category'] is Map
-          ? Category.fromJson(json['category'])
-          : null,
-      brand: json['brand'] != null && json['brand'] is Map
-          ? Brand.fromJson(json['brand'])
-          : null,
-      model: json['model'] != null && json['model'] is Map
-          ? BrandModel.fromJson(json['model'])
-          : null,
-      user: json['user'] != null && json['user'] is Map
-          ? User.fromJson(json['user'])
-          : null,
-      division: json['division'] != null && json['division'] is Map
-          ? Division.fromJson(json['division'])
-          : null,
-      counter: json['counter'] != null && json['counter'] is Map
-          ? PostCounter.fromJson(json['counter'])
-          : null,
-      reviews: json['reviews'] != null && json['reviews'] is List
-          ? (json['reviews'] as List).map((e) => Review.fromJson(e)).toList()
-          : null,
-      fieldValues: json['field_values'] != null && json['field_values'] is List
-          ? (json['field_values'] as List)
-                .map((e) => FieldValue.fromJson(e))
-                .toList()
-          : null,
-    );
+    try {
+      return Post(
+        id: json['id'] as int?,
+        userId: json['user_id'] as int?,
+        title: json['title'] as String?,
+        slug: json['slug'] as String?,
+        description: json['description'] as String?,
+        images: parseImages(json['image']),
+        fields: json['fields'] != null && json['fields'] is Map
+            ? json['fields'] as Map<String, dynamic>
+            : null,
+        categoryId: json['category_id'] as int?,
+        brandId: json['brand_id'] as int?,
+        modelId: json['model_id'] as int?,
+        thanaId: json['thana_id'] as int?,
+        isRecommend: json['is_recommend'] as int?,
+        isFeatured: json['is_featured'] as int?,
+        status: json['status'] as String?,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : null,
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+        reviewsCount: json['reviews_count'] as int?,
+        approvedReviewsCount: json['approved_reviews_count'] as int?,
+        wishlistsCount: json['wishlists_count'] as int?,
+        wishlistsThisMonthCount: json['wishlists_this_month_count'] as int?,
+        reviewsAvgRating: json['reviews_avg_rating'],
+        approvedReviewsAvgRating: json['approved_reviews_avg_rating'],
+        isWishlisted: json['is_wishlisted'] is bool
+            ? json['is_wishlisted'] as bool
+            : (json['is_wishlisted'] is int
+                  ? json['is_wishlisted'] == 1
+                  : null),
+        category: json['category'] != null && json['category'] is Map
+            ? Category.fromJson(json['category'])
+            : null,
+        brand: json['brand'] != null && json['brand'] is Map
+            ? Brand.fromJson(json['brand'])
+            : null,
+        model: json['model'] != null && json['model'] is Map
+            ? BrandModel.fromJson(json['model'])
+            : null,
+        user: json['user'] != null && json['user'] is Map
+            ? User.fromJson(json['user'])
+            : null,
+        division: json['division'] != null && json['division'] is Map
+            ? Division.fromJson(json['division'])
+            : null,
+        counter: json['counter'] != null && json['counter'] is Map
+            ? PostCounter.fromJson(json['counter'])
+            : null,
+        reviews: json['reviews'] != null && json['reviews'] is List
+            ? (json['reviews'] as List).map((e) => Review.fromJson(e)).toList()
+            : null,
+        fieldValues:
+            json['field_values'] != null && json['field_values'] is List
+            ? (json['field_values'] as List)
+                  .map((e) => FieldValue.fromJson(e))
+                  .toList()
+            : null,
+      );
+    } catch (e) {
+      print('Error parsing Post: $e');
+      print('Post data: $json');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {

@@ -34,8 +34,12 @@ class Review {
       userId: json['user_id'] as int?,
       rating: json['rating'] as int?,
       comment: json['comment'] as String?,
-      approved: json['approved'] as bool?,
-      visible: json['visible'] as bool?,
+      approved: json['approved'] is bool
+          ? json['approved'] as bool
+          : (json['approved'] is int ? json['approved'] == 1 : null),
+      visible: json['visible'] is bool
+          ? json['visible'] as bool
+          : (json['visible'] is int ? json['visible'] == 1 : null),
       replyTo: json['reply_to'] as int?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)

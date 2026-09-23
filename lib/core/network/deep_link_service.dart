@@ -110,11 +110,35 @@ class DeepLinkService {
       );
     }
 
-    // Navigate using the global navigator key
-    navigatorKey.currentState?.pushNamed(
-      AppRoutes.postPreview,
-      arguments: slug,
-    );
+    // Check if navigation stack is empty (cold start)
+    final navigatorState = navigatorKey.currentState;
+    if (navigatorState == null) return;
+
+    final canPop = navigatorState.canPop();
+
+    if (kDebugMode) {
+      debugPrint('DeepLinkService: Can pop: $canPop');
+    }
+
+    // If navigation stack is empty (cold start), clear stack and set post preview as root
+    if (!canPop) {
+      if (kDebugMode) {
+        debugPrint(
+          'DeepLinkService: Cold start detected, setting post preview as root',
+        );
+      }
+      navigatorState.pushNamedAndRemoveUntil(
+        AppRoutes.postPreview,
+        (route) => false,
+        arguments: slug,
+      );
+    } else {
+      // Warm start - add to existing navigation stack
+      if (kDebugMode) {
+        debugPrint('DeepLinkService: Warm start detected, adding to stack');
+      }
+      navigatorState.pushNamed(AppRoutes.postPreview, arguments: slug);
+    }
   }
 
   /// Dispose the service and cancel subscriptions

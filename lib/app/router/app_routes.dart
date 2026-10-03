@@ -7,6 +7,8 @@ import '../../features/search/presentation/screens/search_screen.dart';
 import '../../features/my_posts/presentation/screens/my_posts_screen.dart';
 import '../../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../../features/post_add/presentation/screens/post_add_screen.dart';
+import '../../features/seller_profile/presentation/screens/seller_profile_screen.dart';
+import '../../../../core/models/user.dart';
 
 class AppRoutes {
   static const String home = "/";
@@ -18,6 +20,7 @@ class AppRoutes {
   static const String myPosts = "/my-posts";
   static const String profileEdit = "/profile/edit";
   static const String postAdd = "/post-add";
+  static const String sellerProfile = "/seller-profile";
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -71,19 +74,30 @@ class AppRoutes {
         final args = settings.arguments;
         String? postId;
         Map<String, dynamic>? initialData;
-        
+
         if (args is String) {
           postId = args;
         } else if (args is Map<String, dynamic>) {
           postId = args['postId'] as String?;
           initialData = args;
         }
-        
+
         return MaterialPageRoute(
-          builder: (_) => PostAddScreen(
-            postId: postId,
-            initialData: initialData,
-          ),
+          builder: (_) =>
+              PostAddScreen(postId: postId, initialData: initialData),
+        );
+
+      case sellerProfile:
+        final user = settings.arguments as User?;
+        if (user == null) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text("Invalid seller data")),
+            ),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => SellerProfileScreen(user: user),
         );
 
       default:

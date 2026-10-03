@@ -17,7 +17,8 @@ class ReviewsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final approvedReviews = reviews?.where((r) => r.approved == true).toList() ?? [];
+    final approvedReviews =
+        reviews?.where((r) => r.approved == true).toList() ?? [];
 
     if (approvedReviews.isEmpty) {
       return const SizedBox.shrink();
@@ -86,7 +87,9 @@ class ReviewsSection extends StatelessWidget {
                   'Based on approved reviews',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),
               ],
@@ -102,7 +105,9 @@ class ReviewsSection extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -113,11 +118,7 @@ class ReviewsSection extends StatelessWidget {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: AppColors.brand500.withOpacity(0.1),
-                child: Icon(
-                  Icons.person,
-                  color: AppColors.brand500,
-                  size: 20,
-                ),
+                child: Icon(Icons.person, color: AppColors.brand500, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -137,7 +138,9 @@ class ReviewsSection extends StatelessWidget {
                         _formatDate(review.createdAt!),
                         style: TextStyle(
                           fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
                   ],
@@ -146,7 +149,9 @@ class ReviewsSection extends StatelessWidget {
               Row(
                 children: List.generate(5, (index) {
                   return Icon(
-                    index < (review.rating ?? 0) ? Icons.star : Icons.star_border,
+                    index < (review.rating ?? 0)
+                        ? Icons.star
+                        : Icons.star_border,
                     size: 16,
                     color: AppColors.warning500,
                   );

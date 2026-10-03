@@ -112,8 +112,10 @@ class Post {
         approvedReviewsCount: json['approved_reviews_count'] as int?,
         wishlistsCount: json['wishlists_count'] as int?,
         wishlistsThisMonthCount: json['wishlists_this_month_count'] as int?,
-        reviewsAvgRating: json['reviews_avg_rating'],
-        approvedReviewsAvgRating: json['approved_reviews_avg_rating'],
+        reviewsAvgRating: _parseDouble(json['reviews_avg_rating']),
+        approvedReviewsAvgRating: _parseDouble(
+          json['approved_reviews_avg_rating'],
+        ),
         isWishlisted: json['is_wishlisted'] is bool
             ? json['is_wishlisted'] as bool
             : (json['is_wishlisted'] is int
@@ -188,5 +190,15 @@ class Post {
       'reviews': reviews,
       'field_values': fieldValues?.map((e) => e.toJson()).toList(),
     };
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value);
+    }
+    return null;
   }
 }

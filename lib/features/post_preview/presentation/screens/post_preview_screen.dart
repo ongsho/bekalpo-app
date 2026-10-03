@@ -6,8 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/post.dart';
 import '../../../../core/models/user.dart';
+import '../../../../core/models/review.dart';
 import '../../../../core/network/exceptions/api_exception.dart';
 import '../../../../core/providers/post_provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
 import '../../../shared/presentation/widgets/connectivity_wrapper.dart';
 import '../widgets/post_gallery.dart';
@@ -33,6 +35,22 @@ class PostPreviewScreen extends ConsumerStatefulWidget {
 
 class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
   bool _phoneRevealed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize wishlist state from post data after first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final postAsync = ref.read(postBySlugProvider(widget.slug));
+      postAsync.whenData((post) {
+        final postId = post.id;
+        if (postId != null && post.isWishlisted != null) {
+          ref.read(wishlistedProvider(postId).notifier).state =
+              post.isWishlisted!;
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +147,8 @@ class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
     try {
       await ref.read(postRepositoryProvider).addToWishlist(postId);
       ref.read(wishlistedProvider(postId).notifier).state = !current;
+      // Refresh post to get updated isWishlisted from API
+      ref.invalidate(postBySlugProvider(widget.slug));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -160,9 +180,22 @@ class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
 
     if (!mounted) return;
 
+    // Find current user's rating from reviews
+    final authState = ref.read(authProvider);
+    final reviews = post.reviews ?? [];
+    final userReview = reviews.firstWhere(
+      (r) => r.user?.name == authState.userName,
+      orElse: () =>
+          reviews.firstWhere((r) => r.userId != null, orElse: () => Review()),
+    );
+
     showDialog(
       context: context,
-      builder: (context) => RatingDialog(postId: postId),
+      builder: (context) => RatingDialog(
+        postId: postId,
+        initialRating: userReview.rating,
+        initialComment: userReview.comment,
+      ),
     ).then((result) {
       if (result == true) {
         ref.invalidate(postBySlugProvider(widget.slug));

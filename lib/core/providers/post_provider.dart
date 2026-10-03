@@ -468,10 +468,99 @@ final relatedPostsProvider = FutureProvider.family<ApiListResponse<Post>, int>((
 });
 
 // ── Seller Posts ───────────────────────────────────────────────────────────────
-final sellerPostsProvider = FutureProvider.family<ApiListResponse<Post>, int>((
-  ref,
-  userId,
-) async {
-  final repository = ref.watch(postRepositoryProvider);
-  return repository.getSellerPosts(userId: userId);
-});
+class SellerPostsState {
+  final List<Post> posts;
+  final int currentPage;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final String? error;
+
+  const SellerPostsState({
+    this.posts = const [],
+    this.currentPage = 1,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+  });
+
+  SellerPostsState copyWith({
+    List<Post>? posts,
+    int? currentPage,
+    bool? isLoadingMore,
+    bool? hasMore,
+    String? error,
+  }) {
+    return SellerPostsState(
+      posts: posts ?? this.posts,
+      currentPage: currentPage ?? this.currentPage,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
+      error: error,
+    );
+  }
+}
+
+class SellerPostsNotifier extends FamilyAsyncNotifier<SellerPostsState, int> {
+  static const int _perPage = 10;
+
+  @override
+  Future<SellerPostsState> build(int arg) async {
+    return _fetchPage(arg, 1, []);
+  }
+
+  Future<SellerPostsState> _fetchPage(
+    int userId,
+    int page,
+    List<Post> existing,
+  ) async {
+    final repo = ref.read(postRepositoryProvider);
+    final response = await repo.getSellerPosts(
+      userId: userId,
+      page: page,
+      perPage: _perPage,
+    );
+
+    final newPosts = response.data;
+    return SellerPostsState(
+      posts: [...existing, ...newPosts],
+      currentPage: page,
+      isLoadingMore: false,
+      hasMore: newPosts.length >= _perPage,
+    );
+  }
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    if (current.isLoadingMore || !current.hasMore) return;
+
+    state = AsyncData(current.copyWith(isLoadingMore: true));
+    try {
+      final next = await _fetchPage(
+        arg,
+        current.currentPage + 1,
+        current.posts,
+      );
+      state = AsyncData(next);
+    } catch (e) {
+      state = AsyncData(
+        current.copyWith(isLoadingMore: false, error: e.toString()),
+      );
+    }
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    try {
+      final fresh = await _fetchPage(arg, 1, []);
+      state = AsyncData(fresh);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+}
+
+final sellerPostsProvider =
+    AsyncNotifierProvider.family<SellerPostsNotifier, SellerPostsState, int>(
+      SellerPostsNotifier.new,
+    );

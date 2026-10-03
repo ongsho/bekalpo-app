@@ -329,12 +329,13 @@ class PostRepository {
   // ── Get seller posts by user ───────────────────────────────────────────────────
   Future<ApiListResponse<Post>> getSellerPosts({
     required int userId,
-    int perPage = 4,
+    int page = 1,
+    int perPage = 10,
   }) async {
     try {
       final response = await _apiClient.get(
         'posts',
-        queryParameters: {'user_id': userId, 'per_page': perPage},
+        queryParameters: {'user_id': userId, 'page': page, 'per_page': perPage},
       );
 
       return ResponseParser.parseList(

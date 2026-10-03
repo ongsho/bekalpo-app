@@ -9,12 +9,14 @@ class SectionCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final Widget child;
+  final Widget? trailing;
 
   const SectionCard({
     super.key,
     required this.title,
     required this.icon,
     required this.child,
+    this.trailing,
   });
 
   @override
@@ -26,7 +28,7 @@ class SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeaderBar(title: title, icon: icon),
+          _SectionHeaderBar(title: title, icon: icon, trailing: trailing),
           const SizedBox(height: 14),
           child,
         ],
@@ -38,11 +40,17 @@ class SectionCard extends StatelessWidget {
 class _SectionHeaderBar extends StatelessWidget {
   final String title;
   final IconData icon;
+  final Widget? trailing;
 
-  const _SectionHeaderBar({required this.title, required this.icon});
+  const _SectionHeaderBar({
+    required this.title,
+    required this.icon,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final trailingWidget = trailing;
     return Container(
       decoration: const BoxDecoration(
         border: Border(left: BorderSide(color: AppColors.brand500, width: 3)),
@@ -52,14 +60,17 @@ class _SectionHeaderBar extends StatelessWidget {
         children: [
           Icon(icon, size: 17, color: AppColors.brand500),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).colorScheme.onSurface,
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
+          if (trailingWidget != null) trailingWidget,
         ],
       ),
     );

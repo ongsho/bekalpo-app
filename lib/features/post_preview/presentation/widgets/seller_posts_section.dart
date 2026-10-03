@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
+import '../../../../core/models/user.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../home/presentation/widgets/ad_card.dart';
+import '../../../../core/constants/app_colors.dart';
 import 'shared/section_card.dart';
 
 class SellerPostsSection extends ConsumerWidget {
   final int? userId;
   final String? currentPostSlug;
+  final User? user;
 
   const SellerPostsSection({
     super.key,
     required this.userId,
     required this.currentPostSlug,
+    this.user,
   });
 
   @override
@@ -24,10 +28,10 @@ class SellerPostsSection extends ConsumerWidget {
 
     return sellerPostsAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (response) {
+      error: (_, _) => const SizedBox.shrink(),
+      data: (state) {
         // Filter out current post and get up to 4 posts
-        final sellerPosts = response.data
+        final sellerPosts = state.posts
             .where((post) => post.slug != currentPostSlug)
             .take(4)
             .toList();
@@ -48,6 +52,25 @@ class SellerPostsSection extends ConsumerWidget {
         return SectionCard(
           title: 'More from Seller',
           icon: Icons.person_outline,
+          trailing: user != null
+              ? TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.sellerProfile,
+                      arguments: user,
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.brand500,
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: const Text('See All'),
+                )
+              : null,
           child: GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),

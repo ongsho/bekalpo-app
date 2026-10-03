@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/user.dart';
 
@@ -12,12 +13,14 @@ class PostSellerCard extends StatefulWidget {
   final User user;
   final String postTitle;
   final String? postSlug;
+  final int? postsCount;
 
   const PostSellerCard({
     super.key,
     required this.user,
     required this.postTitle,
     this.postSlug,
+    this.postsCount,
   });
 
   @override
@@ -39,20 +42,32 @@ class _PostSellerCardState extends State<PostSellerCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(
+                context,
+                '/seller-profile',
+                arguments: widget.user,
+              );
+            },
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: AppColors.brand500,
-                  child: Text(
-                    (user.name ?? 'U')[0].toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
+                  backgroundImage:
+                      user.avatar != null && user.avatar!.isNotEmpty
+                      ? CachedNetworkImageProvider(user.avatar!)
+                      : null,
+                  child: (user.avatar == null || user.avatar!.isEmpty)
+                      ? Text(
+                          (user.name ?? 'U')[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -78,6 +93,27 @@ class _PostSellerCardState extends State<PostSellerCard> {
                           ).colorScheme.onSurface.withOpacity(0.5),
                         ),
                       ),
+                      if (widget.postsCount != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.list_alt,
+                              size: 12,
+                              color: AppColors.brand500,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${widget.postsCount} Posts',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.brand500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

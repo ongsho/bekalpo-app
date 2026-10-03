@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/post.dart';
+import '../../../../core/models/user.dart';
 import '../../../../core/network/exceptions/api_exception.dart';
 import '../../../../core/providers/post_provider.dart';
 import '../../../../core/mappers/post_mapper.dart';
@@ -19,14 +22,21 @@ import '../widgets/rating_dialog.dart';
 import '../widgets/reviews_section.dart';
 import '../widgets/shared/section_card.dart';
 
-class PostPreviewScreen extends ConsumerWidget {
+class PostPreviewScreen extends ConsumerStatefulWidget {
   final String slug;
 
   const PostPreviewScreen({super.key, required this.slug});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final postAsync = ref.watch(postBySlugProvider(slug));
+  ConsumerState<PostPreviewScreen> createState() => _PostPreviewScreenState();
+}
+
+class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
+  bool _phoneRevealed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final postAsync = ref.watch(postBySlugProvider(widget.slug));
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
@@ -62,7 +72,7 @@ class PostPreviewScreen extends ConsumerWidget {
                             wishlisted ? Icons.favorite : Icons.favorite_border,
                             color: Colors.white,
                           ),
-                          onPressed: () => _toggleWishlist(context, ref, post),
+                          onPressed: () => _toggleWishlist(ref, post),
                         ),
                         IconButton(
                           icon: const Icon(Icons.share_outlined),
@@ -83,7 +93,24 @@ class PostPreviewScreen extends ConsumerWidget {
               child: postAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => _buildError(context, ref, error),
-                data: (post) => _buildContent(context, ref, post),
+                data: (post) => Stack(
+                  children: [
+                    _buildContent(context, ref, post),
+                    // Floating bottom nav for seller
+                    if (post.user != null)
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                        child: _SellerFloatingNav(
+                          user: post.user!,
+                          postTitle: post.title ?? 'No title',
+                          postSlug: post.slug,
+                          postsCount: post.user!.postsCount,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -92,11 +119,7 @@ class PostPreviewScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggleWishlist(
-    BuildContext context,
-    WidgetRef ref,
-    Post post,
-  ) async {
+  Future<void> _toggleWishlist(WidgetRef ref, Post post) async {
     final postId = post.id;
     if (postId == null) return;
     if (ref.read(wishlistBusyProvider(postId))) return;
@@ -107,7 +130,7 @@ class PostPreviewScreen extends ConsumerWidget {
       await ref.read(postRepositoryProvider).addToWishlist(postId);
       ref.read(wishlistedProvider(postId).notifier).state = !current;
     } catch (_) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not update wishlist, try again')),
         );
@@ -117,8 +140,9 @@ class PostPreviewScreen extends ConsumerWidget {
     }
   }
 
-  void _showFullscreenImageView(BuildContext context, List<String> images) {
+  void _showFullscreenImageView(List<String> images) {
     if (images.isEmpty) return;
+    if (!mounted) return;
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
@@ -130,16 +154,18 @@ class PostPreviewScreen extends ConsumerWidget {
     );
   }
 
-  void _showRatingDialog(BuildContext context, WidgetRef ref, Post post) {
+  void _showRatingDialog(WidgetRef ref, Post post) {
     final postId = post.id;
     if (postId == null) return;
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
       builder: (context) => RatingDialog(postId: postId),
     ).then((result) {
       if (result == true) {
-        ref.invalidate(postBySlugProvider(slug));
+        ref.invalidate(postBySlugProvider(widget.slug));
       }
     });
   }
@@ -207,7 +233,7 @@ class PostPreviewScreen extends ConsumerWidget {
             ],
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => ref.invalidate(postBySlugProvider(slug)),
+              onPressed: () => ref.invalidate(postBySlugProvider(widget.slug)),
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
             ),
@@ -237,7 +263,7 @@ class PostPreviewScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: PostGallery(
               images: images,
-              onFullscreenTap: () => _showFullscreenImageView(context, images),
+              onFullscreenTap: () => _showFullscreenImageView(images),
             ),
           ),
 
@@ -251,8 +277,8 @@ class PostPreviewScreen extends ConsumerWidget {
             views: post.counter?.views,
             clicks: post.counter?.clicks,
             rating: post.approvedReviewsAvgRating,
-            onToggleWishlist: () => _toggleWishlist(context, ref, post),
-            onRate: () => _showRatingDialog(context, ref, post),
+            onToggleWishlist: () => _toggleWishlist(ref, post),
+            onRate: () => _showRatingDialog(ref, post),
             onShare: () => _sharePost(post),
           ),
 
@@ -286,6 +312,7 @@ class PostPreviewScreen extends ConsumerWidget {
               user: post.user!,
               postTitle: post.title ?? 'No title',
               postSlug: post.slug,
+              postsCount: post.user!.postsCount,
             ),
 
           const SizedBox(height: 8),
@@ -312,7 +339,11 @@ class PostPreviewScreen extends ConsumerWidget {
           const SizedBox(height: 8),
 
           // Seller Posts Section
-          SellerPostsSection(userId: post.userId, currentPostSlug: post.slug),
+          SellerPostsSection(
+            userId: post.userId,
+            currentPostSlug: post.slug,
+            user: post.user,
+          ),
 
           const SizedBox(height: 24),
         ],
@@ -564,6 +595,259 @@ class _FullscreenImageViewerState extends State<_FullscreenImageViewer>
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _SellerFloatingNav extends StatefulWidget {
+  final User user;
+  final String postTitle;
+  final String? postSlug;
+  final int? postsCount;
+
+  const _SellerFloatingNav({
+    required this.user,
+    required this.postTitle,
+    this.postSlug,
+    this.postsCount,
+  });
+
+  @override
+  State<_SellerFloatingNav> createState() => _SellerFloatingNavState();
+}
+
+class _SellerFloatingNavState extends State<_SellerFloatingNav> {
+  bool _phoneRevealed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.user;
+    final avatar = user.avatar;
+    final name = user.name ?? 'Unknown';
+    final phone = user.phone;
+    final contacts = user.contacts;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          // Left side: Profile info
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/seller-profile', arguments: user);
+            },
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: AppColors.brand500,
+                  backgroundImage: avatar != null && avatar.isNotEmpty
+                      ? CachedNetworkImageProvider(avatar)
+                      : null,
+                  child: (avatar == null || avatar.isEmpty)
+                      ? Text(
+                          (name)[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    if (widget.postsCount != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.list_alt,
+                            size: 10,
+                            color: AppColors.brand500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${widget.postsCount} Posts',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brand500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          // Right side: 3 action icons
+          if (contacts != null && contacts.isNotEmpty || phone != null) ...[
+            _ActionButton(
+              icon: Icons.phone,
+              iconBg: AppColors.brand500.withOpacity(0.1),
+              iconColor: AppColors.brand500,
+              onTap: () => _handlePhoneTap(contacts?.first.value ?? phone),
+            ),
+            const SizedBox(width: 8),
+            _ActionButton(
+              icon: Icons.chat,
+              iconBg: Colors.green.withOpacity(0.1),
+              iconColor: Colors.green,
+              onTap: () => _handleWhatsAppTap(
+                contacts?.first.value ?? phone,
+                sellerName: name,
+              ),
+            ),
+            const SizedBox(width: 8),
+            _ActionButton(
+              icon: Icons.message,
+              iconBg: Colors.orange.withOpacity(0.1),
+              iconColor: Colors.orange,
+              onTap: () {
+                // TODO: Implement messaging
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handlePhoneTap(String? phoneNumber) async {
+    if (!_phoneRevealed) {
+      setState(() => _phoneRevealed = true);
+      return;
+    }
+
+    if (phoneNumber == null || phoneNumber.isEmpty) return;
+
+    final sanitized = phoneNumber.replaceAll(RegExp(r'[\s-]'), '');
+    final uri = Uri(scheme: 'tel', path: sanitized);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  Future<void> _handleWhatsAppTap(
+    String? phoneNumber, {
+    String? sellerName,
+  }) async {
+    if (phoneNumber == null || phoneNumber.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No phone number available')),
+        );
+      }
+      return;
+    }
+
+    final waNumber = _toWhatsAppFormat(phoneNumber);
+    final message = _buildWhatsAppMessage(sellerName);
+
+    final uri = Uri.https('api.whatsapp.com', '/send/', {
+      'phone': waNumber,
+      'text': message,
+      'type': 'phone_number',
+      'app_absent': '0',
+    });
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp')));
+    }
+  }
+
+  String _buildWhatsAppMessage(String? sellerName) {
+    final name = (sellerName == null || sellerName.isEmpty)
+        ? 'সেলার'
+        : sellerName;
+    final link = widget.postSlug != null
+        ? 'https://bekalpo.com/ads/${widget.postSlug}'
+        : null;
+
+    final buffer = StringBuffer()
+      ..writeln('হ্যালো $name,')
+      ..writeln()
+      ..writeln('আমি আপনার পোস্টটি দেখেছি এবং এটি সম্পর্কে আরও জানতে চাই।')
+      ..writeln()
+      ..writeln('পোস্ট: ${widget.postTitle}');
+
+    if (link != null) {
+      buffer.writeln('লিংক: $link');
+    }
+
+    buffer
+      ..writeln()
+      ..writeln('আপনি কি দয়া করে বিস্তারিত জানাতে পারবেন?')
+      ..writeln()
+      ..write('ধন্যবাদ');
+
+    return buffer.toString();
+  }
+
+  String _toWhatsAppFormat(String phoneNumber) {
+    final cleaned = phoneNumber.replaceAll(RegExp(r'[\s-]'), '');
+    if (cleaned.startsWith('01')) {
+      return '88$cleaned';
+    } else if (cleaned.startsWith('8801')) {
+      return cleaned;
+    }
+    return cleaned;
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: iconColor),
       ),
     );
   }

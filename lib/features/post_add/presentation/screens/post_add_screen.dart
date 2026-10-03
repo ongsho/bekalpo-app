@@ -799,7 +799,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         final data = response.data;
         print('PostAddScreen: Response data type: ${data.runtimeType}');
         print(
-          'PostAddScreen: Response data keys: ${data is Map ? (data as Map).keys : 'not a map'}',
+          'PostAddScreen: Response data keys: ${data is Map ? data.keys : 'not a map'}',
         );
 
         if (data != null && data['image'] != null) {

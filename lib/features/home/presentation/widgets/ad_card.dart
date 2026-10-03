@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../data/models/ad_model.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/providers/post_provider.dart';
-import '../../../../core/repositories/post_repository.dart';
 import '../../../../core/models/post.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,14 +25,6 @@ class AdCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        // Register click count API call
-        if (postId != null) {
-          ref.read(postRepositoryProvider).registerClick(postId!).catchError((
-            _,
-          ) {
-            // Silently ignore errors for click tracking
-          });
-        }
         onTap?.call();
       },
       child: Container(
@@ -68,16 +58,7 @@ class AdCard extends ConsumerWidget {
                               constraints.maxWidth > 0
                           ? constraints.maxWidth
                           : 200.0;
-                      final safeHeight =
-                          constraints.maxHeight.isFinite &&
-                              constraints.maxHeight > 0
-                          ? constraints.maxHeight
-                          : 150.0;
                       final decodeWidth = (safeWidth * dpr).round().clamp(
-                        1,
-                        2000,
-                      );
-                      final decodeHeight = (safeHeight * dpr).round().clamp(
                         1,
                         2000,
                       );
@@ -86,11 +67,10 @@ class AdCard extends ConsumerWidget {
                         imageUrl: ad.imageUrl ?? '',
                         fit: BoxFit.cover,
                         memCacheWidth: decodeWidth,
-                        // memCacheHeight: decodeHeight,
                         fadeInDuration: const Duration(milliseconds: 150),
-                        placeholder: (_, __) =>
+                        placeholder: (_, _) =>
                             Container(color: Colors.grey.shade100),
-                        errorWidget: (_, __, ___) => Container(
+                        errorWidget: (_, _, _) => Container(
                           color: Colors.grey.shade200,
                           child: Icon(
                             Icons.image_not_supported,

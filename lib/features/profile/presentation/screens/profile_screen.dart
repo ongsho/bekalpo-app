@@ -637,7 +637,11 @@ class _TopBar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         InkWell(
-          onTap: () => Navigator.maybePop(context),
+          onTap: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.maybePop(context);
+            }
+          },
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(4.0),

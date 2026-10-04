@@ -5,5 +5,3 @@ Fixed: Payload filtered to only include current category fields
 Fixed: Brand and model set to null for categories without brand field
 Fixed: Category ID now sent as integer instead of string
 Fixed: Radio/select values converted from strings to integers
-Fixed: Checkbox values converted from strings to integer lists
-Updated: App version to 1.5.10

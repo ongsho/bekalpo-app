@@ -123,7 +123,15 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
               errorText: widget.errorText,
               prefixText: '৳ ',
             ),
-            onChanged: widget.onChanged,
+            onChanged: (value) {
+              print('[POSTDBG] ========== FIELD CHANGE ==========');
+              print('[POSTDBG] Slug: ${widget.field.slug}');
+              print('[POSTDBG] Type: ${widget.field.type}');
+              print('[POSTDBG] New Value: $value');
+              print('[POSTDBG] Value Type: ${value.runtimeType}');
+              print('[POSTDBG] =============================');
+              widget.onChanged(value);
+            },
           ),
         ],
       ),
@@ -216,6 +224,12 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                 value: item.id.toString(),
                 groupValue: selectedValue,
                 onChanged: (value) {
+                  print('[POSTDBG] ========== FIELD CHANGE ==========');
+                  print('[POSTDBG] Slug: ${widget.field.slug}');
+                  print('[POSTDBG] Type: ${widget.field.type}');
+                  print('[POSTDBG] New Value: $value');
+                  print('[POSTDBG] Value Type: ${value.runtimeType}');
+                  print('[POSTDBG] =============================');
                   // Radio should store as array
                   widget.onChanged([value]);
                 },
@@ -314,6 +328,12 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                   field: widget.field,
                   initialValue: selectedValue,
                   onItemSelected: (value) {
+                    print('[POSTDBG] ========== FIELD CHANGE ==========');
+                    print('[POSTDBG] Slug: ${widget.field.slug}');
+                    print('[POSTDBG] Type: ${widget.field.type}');
+                    print('[POSTDBG] New Value: $value');
+                    print('[POSTDBG] Value Type: ${value.runtimeType}');
+                    print('[POSTDBG] =============================');
                     // Select should store as array
                     widget.onChanged([value]);
                   },
@@ -451,15 +471,20 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
           else
             Column(
               children: widget.field.items.map((item) {
-                // Handle checkbox value - convert to List<String> if needed
-                List<String> currentList = [];
+                // Handle checkbox value - convert to List<int> if needed
+                List<int> currentList = [];
                 if (widget.value is List) {
                   currentList = (widget.value as List)
-                      .map((e) => e.toString())
+                      .map((e) {
+                        if (e is int) return e;
+                        if (e is String) return int.tryParse(e);
+                        return null;
+                      })
+                      .whereType<int>()
                       .toList();
                 }
 
-                final isSelected = currentList.contains(item.id.toString());
+                final isSelected = currentList.contains(item.id);
 
                 return CheckboxListTile(
                   title: Text(
@@ -470,10 +495,16 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                   value: isSelected,
                   onChanged: (checked) {
                     if (checked == true) {
-                      currentList.add(item.id.toString());
+                      currentList.add(item.id);
                     } else {
-                      currentList.remove(item.id.toString());
+                      currentList.remove(item.id);
                     }
+                    print('[POSTDBG] ========== FIELD CHANGE ==========');
+                    print('[POSTDBG] Slug: ${widget.field.slug}');
+                    print('[POSTDBG] Type: ${widget.field.type}');
+                    print('[POSTDBG] New Value: $currentList');
+                    print('[POSTDBG] Value Type: List<int>');
+                    print('[POSTDBG] =============================');
                     widget.onChanged(currentList);
                   },
                   activeColor: theme.colorScheme.primary,

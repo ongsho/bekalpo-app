@@ -6,6 +6,7 @@ import '../../../../core/models/thana.dart';
 
 import '../../../../core/models/post_field.dart';
 import 'dart:io';
+import 'dart:convert';
 import '../../../../core/models/brand.dart';
 import '../../../../core/models/model.dart';
 import '../../../../core/models/contact.dart';
@@ -51,7 +52,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   // Brand selection state
   Brand? _selectedBrand;
   String? _selectedBrandName;
-  bool _hasBrands = false;
+  bool _hasBrandField = false; // Track if brand field exists in dynamic fields
 
   // Model selection state
   ProductModel? _selectedModel;
@@ -368,9 +369,86 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     });
   }
 
+  // Helper function to convert field values to correct types for payload
+  dynamic _convertFieldValueForPayload(
+    String slug,
+    dynamic value,
+    postFieldsState,
+  ) {
+    // Find the field definition
+    PostField? field;
+    try {
+      field = postFieldsState.fields.firstWhere((f) => f.slug == slug);
+    } catch (e) {
+      // Field not found in current category
+      return null;
+    }
+
+    if (field == null) return null;
+
+    print(
+      '[POSTDBG] Converting field: $slug, type: ${field.type}, value: $value (${value.runtimeType})',
+    );
+
+    // Radio and select fields: convert List to int
+    if (field.type == 'radio' || field.type == 'select') {
+      if (value is List && value.isNotEmpty) {
+        final firstValue = value.first;
+        if (firstValue is String) {
+          final intValue = int.tryParse(firstValue);
+          print('[POSTDBG] Converted radio/select $slug: $value -> $intValue');
+          return intValue;
+        }
+        if (firstValue is int) return firstValue;
+        return firstValue;
+      }
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      return value;
+    }
+
+    // Checkbox fields: convert List to List<int>
+    if (field.type == 'checkbox') {
+      if (value is List) {
+        final intList = value
+            .map((e) {
+              if (e is int) return e;
+              if (e is String) return int.tryParse(e);
+              return null;
+            })
+            .whereType<int>()
+            .toList();
+        print('[POSTDBG] Converted checkbox $slug: $value -> $intList');
+        return intList;
+      }
+      return value;
+    }
+
+    // Text fields: keep as is
+    return value;
+  }
+
   // Method to apply field values after dynamic fields are loaded
   void _applyFieldValuesAfterFieldsLoaded() {
     if (_editData == null) return;
+
+    print('[POSTDBG] ========== APPLY FIELD VALUES ==========');
+    print(
+      '[POSTDBG] Original category_id from editData: ${_editData['category_id']}',
+    );
+    print('[POSTDBG] Current _selectedCategoryId: $_selectedCategoryId');
+    print(
+      '[POSTDBG] Category changed: ${_editData['category_id'].toString() != _selectedCategoryId}',
+    );
+
+    // Fix #11: If category changed from original, apply nothing at all
+    if (_editData['category_id'].toString() != _selectedCategoryId) {
+      print(
+        '[POSTDBG] Category changed from original - skipping all field value restoration',
+      );
+      print('[POSTDBG] =======================================');
+      return;
+    }
 
     print('PostAddScreen: Applying field values after dynamic fields loaded');
     print('PostAddScreen: _editData: $_editData');
@@ -382,6 +460,13 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
           if (fv['field_slug'] != null) {
             final slug = fv['field_slug'];
             final value = fv['value'];
+            // Skip brand and model since they are handled by dedicated selectors
+            if (slug == 'brand' || slug == 'model') {
+              print(
+                'PostAddScreen: Skipping $slug - handled by dedicated selector',
+              );
+              continue;
+            }
             if (value != null) {
               _fieldValues[slug] = value;
               print('PostAddScreen: Field value re-applied: $slug = $value');
@@ -401,6 +486,24 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         _fieldValues['description'] = _editData['description'];
 
       print('PostAddScreen: Field values after applying: $_fieldValues');
+
+      // Convert loaded values to correct types
+      final postFieldsState = ref.read(postFieldsProvider);
+      _fieldValues.forEach((key, value) {
+        if (key == 'brand' || key == 'model' || key == 'description') return;
+        final converted = _convertFieldValueForPayload(
+          key,
+          value,
+          postFieldsState,
+        );
+        if (converted != value) {
+          _fieldValues[key] = converted;
+          print('[POSTDBG] Converted loaded field $key: $value -> $converted');
+        }
+      });
+
+      print('[POSTDBG] Field values after conversion: $_fieldValues');
+      print('[POSTDBG] =======================================');
     });
   }
 
@@ -547,6 +650,23 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
           next.error == null) {
         print('PostAddScreen: Post fields loaded, applying field values');
         _applyFieldValuesAfterFieldsLoaded();
+
+        // Check if brand and model fields exist in dynamic fields
+        setState(() {
+          _hasBrandField = next.fields.any((field) => field.slug == 'brand');
+        });
+        print('[POSTDBG] Post fields loaded');
+        print('[POSTDBG] Category ID: $_selectedCategoryId');
+        print('[POSTDBG] _hasBrandField: $_hasBrandField');
+        print(
+          '[POSTDBG] Field slugs: ${next.fields.map((f) => f.slug).toList()}',
+        );
+        print(
+          '[POSTDBG] Required fields: ${next.fields.where((f) => f.pivot.required).map((f) => f.slug).toList()}',
+        );
+
+        // Re-run validation after fields load (fix for issue #10)
+        _validateForm();
       }
     });
 
@@ -555,16 +675,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       print(
         'PostAddScreen: Brand state changed - previous isLoading: ${previous?.isLoading}, next isLoading: ${next.isLoading}, brands count: ${next.brands.length}, error: ${next.error}',
       );
-      if (!next.isLoading && next.brands.isNotEmpty && !_hasBrands) {
-        setState(() {
-          _hasBrands = true;
-          print('PostAddScreen: _hasBrands set to true');
-        });
-      }
+      // Note: _hasBrands is no longer used for validation - _hasBrandField controls that
     });
 
-    // If brands are available but no brand is selected, clear model
-    if (_hasBrands && _selectedBrand == null && _selectedModel != null) {
+    // If brand field exists but no brand is selected, clear model
+    if (_hasBrandField && _selectedBrand == null && _selectedModel != null) {
       setState(() {
         _selectedModel = null;
         _selectedModelName = null;
@@ -611,9 +726,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     _buildCategorySelector(theme),
                     const SizedBox(height: 16),
 
-                    // Brand selector (show when category selected AND brands are available OR brand is already selected in edit mode)
+                    // Brand selector (show when category selected AND brand field exists in dynamic fields OR brand is already selected in edit mode)
                     if (_selectedCategoryId != null &&
-                        (_hasBrands || _selectedBrand != null)) ...[
+                        (_hasBrandField || _selectedBrand != null)) ...[
                       _buildBrandSelector(theme),
                       const SizedBox(height: 16),
 
@@ -629,10 +744,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                   _buildHelperText(theme),
                   const SizedBox(height: 24),
 
-                  // Dynamic form fields (show when location and category are selected, and brand/model if brands are available)
+                  // Dynamic form fields (show when location and category are selected, and brand/model if brand field exists)
                   if (_selectedArea != null &&
                       _selectedCategoryId != null &&
-                      (!_hasBrands ||
+                      (!_hasBrandField ||
                           (_selectedBrand != null &&
                               _selectedModel != null))) ...[
                     if (postFieldsState.isLoading)
@@ -648,7 +763,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
                     _buildSubmitButton(theme, _isEditMode),
                   ] else if (_selectedArea != null &&
                       _selectedCategoryId != null &&
-                      _hasBrands) ...[
+                      _hasBrandField) ...[
                     // Show message when brand/model not selected
                     Padding(
                       padding: const EdgeInsets.all(16),
@@ -733,6 +848,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
     print('PostAddScreen: Saving draft with ID: $_currentPostId');
     try {
+      // Create a copy of field_values without brand and model
+      final fieldValuesCopy = Map<String, dynamic>.from(_fieldValues);
+      fieldValuesCopy.remove('brand');
+      fieldValuesCopy.remove('model');
+
       await ref.read(draftPostProvider.notifier).updateDraft({
         'location': _locationDisplayName,
         'category_id': _selectedCategoryId,
@@ -741,7 +861,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         'brand_name': _selectedBrandName,
         'model_id': _selectedModel?.id,
         'model_name': _selectedModelName,
-        'field_values': _fieldValues,
+        'field_values': fieldValuesCopy,
         'images': _uploadedImages,
       });
       print('PostAddScreen: Draft saved successfully');
@@ -906,56 +1026,102 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     // Validate all required fields
     bool isValid = true;
 
+    print('[POSTDBG] ========== VALIDATION START ==========');
+    print('[POSTDBG] _hasBrandField: $_hasBrandField');
+    print(
+      '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
+    );
+    print(
+      '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
+    );
+    print('[POSTDBG] _fieldValues: $_fieldValues');
+
     // Check location
     if (_selectedArea == null) {
       isValid = false;
+      print('[POSTDBG] ❌ FAILED: Location is required');
+    } else {
+      print('[POSTDBG] ✓ OK: Location selected');
     }
 
     // Check category
     if (_selectedCategoryId == null) {
       isValid = false;
+      print('[POSTDBG] ❌ FAILED: Category is required');
+    } else {
+      print('[POSTDBG] ✓ OK: Category selected');
     }
 
-    // Check brand and model only if brands are available for this category
-    if (_hasBrands) {
+    // Check brand and model only if brand field exists in dynamic fields
+    if (_hasBrandField) {
       if (_selectedBrand == null) {
         isValid = false;
+        print('[POSTDBG] ❌ FAILED: Brand is required but not selected');
+      } else {
+        print('[POSTDBG] ✓ OK: Brand selected');
       }
 
       if (_selectedModel == null) {
         isValid = false;
+        print('[POSTDBG] ❌ FAILED: Model is required but not selected');
+      } else {
+        print('[POSTDBG] ✓ OK: Model selected');
       }
     }
 
     // Check dynamic fields (skip brand and model since they have dedicated selectors)
-    // Only validate dynamic fields if brand and model are selected (when brands are available)
-    if (!_hasBrands || (_selectedBrand != null && _selectedModel != null)) {
+    // Only validate dynamic fields if brand and model are selected (when brand field exists)
+    if (!_hasBrandField || (_selectedBrand != null && _selectedModel != null)) {
       final postFieldsState = ref.read(postFieldsProvider);
+      print('[POSTDBG] ========== REQUIRED FIELDS CHECK ==========');
       for (final field in postFieldsState.fields) {
         // Skip brand and model fields
         if (field.slug == 'brand' || field.slug == 'model') continue;
 
-        if (field.pivot.required &&
-            (_fieldValues[field.slug] == null ||
-                _fieldValues[field.slug].toString().isEmpty)) {
+        final value = _fieldValues[field.slug];
+        final isEmpty =
+            value == null ||
+            (value is List && value.isEmpty) ||
+            (value is String && value.isEmpty);
+        final runtimeType = value?.runtimeType.toString();
+
+        print(
+          '[POSTDBG] Field: ${field.slug} | Type: ${field.type} | Value: $value | RuntimeType: $runtimeType | IsEmpty: $isEmpty | Required: ${field.pivot.required}',
+        );
+
+        if (field.pivot.required && isEmpty) {
           isValid = false;
           _fieldErrors[field.slug] = '${field.title} is required';
+          print('[POSTDBG] ❌ FAILED: ${field.slug} is required');
         } else {
           // Clear error if field is now valid
           _fieldErrors.remove(field.slug);
+          if (field.pivot.required) {
+            print('[POSTDBG] ✓ OK: ${field.slug} is valid');
+          }
         }
       }
 
       // Check description field (always required when dynamic fields are shown)
-      if (_fieldValues['description'] == null ||
-          _fieldValues['description'].toString().isEmpty) {
+      final descValue = _fieldValues['description'];
+      final descEmpty = descValue == null || descValue.toString().isEmpty;
+      print(
+        '[POSTDBG] Field: description | Type: text | Value: $descValue | RuntimeType: ${descValue?.runtimeType} | IsEmpty: $descEmpty | Required: true',
+      );
+
+      if (descEmpty) {
         isValid = false;
         _fieldErrors['description'] = 'Description is required';
+        print('[POSTDBG] ❌ FAILED: Description is required');
       } else {
         _fieldErrors.remove('description');
+        print('[POSTDBG] ✓ OK: Description is valid');
       }
     }
 
+    print('[POSTDBG] ========== VALIDATION END ==========');
+    print('[POSTDBG] Final Result: Form is ${isValid ? "VALID" : "INVALID"}');
+    print('[POSTDBG] =======================================');
     setState(() {
       _isFormValid = isValid;
     });
@@ -967,7 +1133,20 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       _hasAttemptedSubmit = true;
     });
 
+    print('[POSTDBG] ========== SUBMIT HANDLER ==========');
+    print('[POSTDBG] _hasBrandField: $_hasBrandField');
+    print(
+      '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
+    );
+    print(
+      '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
+    );
+    print('[POSTDBG] _fieldValues: $_fieldValues');
+    print('[POSTDBG] _isFormValid: $_isFormValid');
+    print('[POSTDBG] =======================================');
+
     if (!_isFormValid) {
+      print('[POSTDBG] ❌ SUBMIT BLOCKED: Form is invalid');
       return;
     }
 
@@ -1027,60 +1206,94 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         }
       }
 
-      // Build the field_values array properly
-      List<Map<String, dynamic>> fieldValuesArray = [];
+      // Build the info object with all field values directly
+      Map<String, dynamic> info = {
+        'contact_phones': contactPhones,
+        '__initialized': true,
+      };
 
-      // Add field values to field_values array
+      print('PostAddScreen: Building info from _fieldValues: $_fieldValues');
+
+      // Get currently loaded fields to filter which slugs to include
+      final postFieldsState = ref.read(postFieldsProvider);
+      final validSlugs = postFieldsState.fields.map((f) => f.slug).toSet();
+      print('[POSTDBG] Valid field slugs for current category: $validSlugs');
+
+      // Add all field values directly to info object, but only for currently loaded fields
       _fieldValues.forEach((key, value) {
         // Skip description as it's handled separately
         if (key == 'description') return;
 
-        // Handle different value types
-        if (value is List) {
-          // For multi-select fields (checkbox, radio, select)
-          fieldValuesArray.add({'field_slug': key, 'value_ids': value});
-        } else {
-          // For text fields
-          fieldValuesArray.add({'field_slug': key, 'value': value?.toString()});
+        // Skip brand and model as they are handled separately below
+        if (key == 'brand' || key == 'model') return;
+
+        // Fix #12: Only include slugs that exist in currently loaded fields
+        if (!validSlugs.contains(key)) {
+          print('[POSTDBG] Skipping field not in current category: $key');
+          return;
         }
+
+        // Convert value to correct type
+        final convertedValue = _convertFieldValueForPayload(
+          key,
+          value,
+          postFieldsState,
+        );
+        info[key] = convertedValue;
+        print(
+          '[POSTDBG] Added field to info: $key = $convertedValue (original: $value)',
+        );
       });
 
-      // Build the info object
-      Map<String, dynamic> info = {
-        'field_values': fieldValuesArray,
-        'contact_phones': contactPhones,
-        '__initialized': true,
-      };
+      // Add brand and model to info object
+      // Fix #12: Send null for brand/model if category doesn't have brand field
+      if (_hasBrandField) {
+        if (_selectedBrand != null) {
+          info['brand'] = _selectedBrand!.id;
+          print('[POSTDBG] Added brand to info: ${_selectedBrand!.id}');
+        } else {
+          info['brand'] = null;
+          print('[POSTDBG] Added brand to info: null (no brand selected)');
+        }
+        if (_selectedModel != null) {
+          info['model'] = _selectedModel!.id;
+          print('[POSTDBG] Added model to info: ${_selectedModel!.id}');
+        } else {
+          info['model'] = null;
+          print('[POSTDBG] Added model to info: null (no model selected)');
+        }
+      } else {
+        info['brand'] = null;
+        info['model'] = null;
+        print(
+          '[POSTDBG] Category has no brand field - set brand/model to null',
+        );
+      }
 
       // Add description if exists
       if (_fieldValues.containsKey('description')) {
         info['description'] = _fieldValues['description'];
       }
 
-      // Add brand and model inside info object (backend expects this format)
-      if (_selectedBrand != null) {
-        info['brand'] = _selectedBrand!.id;
-        print('PostAddScreen: Adding brand inside info: ${_selectedBrand!.id}');
-      } else {
-        print('PostAddScreen: No brand selected, brand will be null');
-      }
-      if (_selectedModel != null) {
-        info['model'] = _selectedModel!.id;
-        print('PostAddScreen: Adding model inside info: ${_selectedModel!.id}');
-      } else {
-        print('PostAddScreen: No model selected, model will be null');
-      }
+      print('PostAddScreen: Final info object: $info');
 
       // Build the payload
+      // Fix #13: Convert category_id to int
       Map<String, dynamic> payload = {
         'info': info,
-        'category_id': _selectedCategoryId,
+        'category_id': _selectedCategoryId != null
+            ? int.parse(_selectedCategoryId!)
+            : null,
         'thana_id': _selectedArea?.id,
         'status': 'published',
       };
 
+      print('[POSTDBG] ========== SUBMIT PAYLOAD ==========');
+      final payloadStr = const JsonEncoder.withIndent('  ').convert(payload);
+      print('[POSTDBG] Payload: $payloadStr');
+      print('[POSTDBG] =======================================');
+
       print('PostAddScreen: Submitting post with ID: $_currentPostId');
-      print('PostAddScreen: Payload: $payload');
 
       final apiClient = ApiClient();
       final response = await apiClient.submitPost(
@@ -1816,16 +2029,43 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildHelperText(ThemeData theme) {
-    String helperText;
-    if (_hasBrands) {
-      if (_selectedBrand != null && _selectedModel != null) {
-        helperText = 'বিজ্ঞাপন দিতে অন্যান্য তথ্য পূরণ করুন';
-      } else {
-        helperText =
-            'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন, ক্যাটাগরি, ব্র্যান্ড ও মডেল বেছে নিন';
+    List<String> missingItems = [];
+
+    // Check phone
+    final authState = ref.read(authProvider);
+    final hasVerifiedPhone = authState.userPhone != null;
+    final hasContacts =
+        authState.userContacts != null && authState.userContacts!.isNotEmpty;
+    final hasPhone = hasVerifiedPhone || hasContacts;
+    if (!hasPhone) {
+      missingItems.add('ফোন নম্বর');
+    }
+
+    // Check location
+    if (_selectedArea == null) {
+      missingItems.add('লোকেশন');
+    }
+
+    // Check category
+    if (_selectedCategoryId == null) {
+      missingItems.add('ক্যাটাগরি');
+    }
+
+    // Check brand and model only if brand field exists
+    if (_hasBrandField) {
+      if (_selectedBrand == null) {
+        missingItems.add('ব্র্যান্ড');
       }
+      if (_selectedModel == null) {
+        missingItems.add('মডেল');
+      }
+    }
+
+    String helperText;
+    if (missingItems.isEmpty) {
+      helperText = 'বিজ্ঞাপন দিতে অন্যান্য তথ্য পূরণ করুন';
     } else {
-      helperText = 'বিজ্ঞাপন দিতে ফোন নম্বর, লোকেশন ও ক্যাটাগরি বেছে নিন';
+      helperText = 'বিজ্ঞাপন দিতে ${missingItems.join(', ')} বেছে নিন';
     }
 
     return Center(
@@ -2045,10 +2285,23 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   }
 
   Widget _buildSubmitButton(ThemeData theme, bool isEditMode) {
-    // Only enable submit if form is valid AND brand/model are selected when brands are available
+    // Only enable submit if form is valid AND brand/model are selected when brand field exists
     final canSubmit =
         _isFormValid &&
-        (!_hasBrands || (_selectedBrand != null && _selectedModel != null));
+        (!_hasBrandField || (_selectedBrand != null && _selectedModel != null));
+
+    print('[POSTDBG] ========== SUBMIT BUTTON STATE ==========');
+    print('[POSTDBG] canSubmit: $canSubmit');
+    print('[POSTDBG] _isFormValid: $_isFormValid');
+    print('[POSTDBG] _hasBrandField: $_hasBrandField');
+    print(
+      '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
+    );
+    print(
+      '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
+    );
+    print('[POSTDBG] _isSubmitting: $_isSubmitting');
+    print('[POSTDBG] =======================================');
 
     return Material(
       color: canSubmit
@@ -2114,6 +2367,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => CategorySelectorBottomSheet(
         onCategorySelected: (categoryId, categoryName) {
+          print('[POSTDBG] ========== CATEGORY SELECTED ==========');
+          print('[POSTDBG] Category ID: $categoryId');
+          print('[POSTDBG] Category Name: $categoryName');
           setState(() {
             _selectedCategoryId = categoryId;
             _selectedCategoryName = categoryName;
@@ -2125,6 +2381,15 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             // Clear previous field values when category changes
             _fieldValues.clear();
             _fieldErrors.clear();
+            // Also clear brand and model from field values if they exist
+            _fieldValues.remove('brand');
+            _fieldValues.remove('model');
+            // Reset hasBrandField flag
+            _hasBrandField = false;
+            print('[POSTDBG] Cleared brand/model, _hasBrandField set to false');
+            print(
+              '[POSTDBG] _selectedBrand: $_selectedBrand, _selectedModel: $_selectedModel',
+            );
             // Fetch fields for the new category
             ref
                 .read(postFieldsProvider.notifier)
@@ -2133,6 +2398,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             ref.read(brandProvider.notifier).fetchBrands(int.parse(categoryId));
           });
           _saveDraft();
+          // Validate form after category change
+          _validateForm();
+          print('[POSTDBG] =======================================');
         },
       ),
     );
@@ -2148,10 +2416,13 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       builder: (context) => BrandSelectorBottomSheet(
         brands: brandState.brands,
         onBrandSelected: (brand) {
+          print('[POSTDBG] ========== BRAND SELECTED ==========');
+          print('[POSTDBG] Brand ID: ${brand.id}');
+          print('[POSTDBG] Brand Name: ${brand.displayName}');
+          print('[POSTDBG] Brand Type: ${brand.runtimeType}');
           setState(() {
             _selectedBrand = brand;
             _selectedBrandName = brand.displayName;
-            _hasBrands = true;
             // Clear model when brand changes
             _selectedModel = null;
             _selectedModelName = null;
@@ -2160,6 +2431,16 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               ref.read(modelProvider.notifier).fetchModels(brand.id!);
             }
           });
+          print(
+            '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
+          );
+          print(
+            '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
+          );
+          print(
+            '[POSTDBG] _fieldValues[brand]: ${_fieldValues['brand']} (type: ${_fieldValues['brand']?.runtimeType})',
+          );
+          print('[POSTDBG] =============================');
           _saveDraft();
         },
       ),
@@ -2176,10 +2457,21 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       builder: (context) => ModelSelectorBottomSheet(
         models: modelState.models,
         onModelSelected: (model) {
+          print('[POSTDBG] ========== MODEL SELECTED ==========');
+          print('[POSTDBG] Model ID: ${model.id}');
+          print('[POSTDBG] Model Name: ${model.displayName}');
+          print('[POSTDBG] Model Type: ${model.runtimeType}');
           setState(() {
             _selectedModel = model;
             _selectedModelName = model.displayName;
           });
+          print(
+            '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
+          );
+          print(
+            '[POSTDBG] _fieldValues[model]: ${_fieldValues['model']} (type: ${_fieldValues['model']?.runtimeType})',
+          );
+          print('[POSTDBG] =============================');
           _saveDraft();
         },
       ),

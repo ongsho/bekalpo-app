@@ -238,27 +238,56 @@ class ApiClient {
 
   /// Log request details
   void _logRequest(RequestOptions options) {
-    // TODO: Implement proper logging (e.g., using logger package)
-    // For now, simple print for debugging
-    print('API Request: ${options.method} ${options.uri}');
+    print('[POSTDBG] ========== REQUEST ==========');
+    print('[POSTDBG] Method: ${options.method}');
+    print('[POSTDBG] URL: ${options.uri}');
     if (options.data != null) {
-      print('Request Data: ${options.data}');
+      if (options.data is FormData) {
+        print(
+          '[POSTDBG] Payload: <FormData - ${options.data.fields.length} fields>',
+        );
+        options.data.fields.forEach((field) {
+          print(
+            '[POSTDBG]   - ${field.key}: ${field.value is MultipartFile ? "MultipartFile(${field.value.filename})" : field.value}',
+          );
+        });
+      } else {
+        final dataStr = options.data is String
+            ? options.data
+            : const JsonEncoder.withIndent('  ').convert(options.data);
+        print('[POSTDBG] Payload: $dataStr');
+      }
     }
+    if (options.queryParameters.isNotEmpty) {
+      print('[POSTDBG] Query Params: ${options.queryParameters}');
+    }
+    print('[POSTDBG] ==============================');
   }
 
   /// Log response details
   void _logResponse(Response response) {
-    // TODO: Implement proper logging (e.g., using logger package)
-    print(
-      'API Response: ${response.statusCode} ${response.requestOptions.uri}',
-    );
-    print('Response Data: ${response.data}');
+    print('[POSTDBG] ========== RESPONSE ==========');
+    print('[POSTDBG] Status: ${response.statusCode}');
+    print('[POSTDBG] URL: ${response.requestOptions.uri}');
+    final dataStr = const JsonEncoder.withIndent('  ').convert(response.data);
+    print('[POSTDBG] Body: $dataStr');
+    print('[POSTDBG] ==============================');
   }
 
   /// Log error details
   void _logError(DioException error) {
-    // TODO: Implement proper logging (e.g., using logger package)
-    print('API Error: ${error.type} - ${error.message}');
+    print('[POSTDBG] ========== ERROR ==========');
+    print('[POSTDBG] Type: ${error.type}');
+    print('[POSTDBG] Message: ${error.message}');
+    print('[POSTDBG] URL: ${error.requestOptions.uri}');
+    if (error.response != null) {
+      print('[POSTDBG] Status: ${error.response?.statusCode}');
+      final dataStr = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(error.response?.data);
+      print('[POSTDBG] Body: $dataStr');
+    }
+    print('[POSTDBG] =============================');
   }
 
   // HTTP Methods

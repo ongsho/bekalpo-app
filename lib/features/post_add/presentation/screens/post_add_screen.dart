@@ -6,7 +6,6 @@ import '../../../../core/models/thana.dart';
 
 import '../../../../core/models/post_field.dart';
 import 'dart:io';
-import 'dart:convert';
 import '../../../../core/models/brand.dart';
 import '../../../../core/models/model.dart';
 import '../../../../core/models/contact.dart';
@@ -118,9 +117,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       final apiClient = ApiClient();
       final response = await apiClient.getPostForEdit(_currentPostId!);
 
-      print('PostAddScreen: API response status: ${response.statusCode}');
-      print('PostAddScreen: API response data: ${response.data}');
-
       if (response.statusCode == 200) {
         final responseMap = response.data as Map<String, dynamic>;
         final data = responseMap['data'];
@@ -133,7 +129,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         );
       }
     } catch (e) {
-      print('PostAddScreen: Error loading post from API: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error loading post: $e')));
@@ -147,12 +142,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   void _populateFormDataFromAPI(dynamic data) {
     if (data == null) return;
 
-    print('PostAddScreen: Populating form data from API');
-    print('PostAddScreen: thana_id: ${data['thana_id']}');
-    print('PostAddScreen: thana: ${data['thana']}');
-    print('PostAddScreen: brand_id: ${data['brand_id']}');
-    print('PostAddScreen: model_id: ${data['model_id']}');
-
     setState(() {
       // Load category
       if (data['category_id'] != null &&
@@ -161,22 +150,13 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         final categoryData = data['category'] as Map<String, dynamic>;
         _selectedCategoryId = data['category_id'].toString();
         _selectedCategoryName = categoryData['name_en']?.toString();
-        print(
-          'PostAddScreen: Category set - ID: $_selectedCategoryId, Name: $_selectedCategoryName',
-        );
 
         // Trigger post fields provider reload with new category
-        print(
-          'PostAddScreen: Triggering post fields reload for category: $_selectedCategoryId',
-        );
         ref
             .read(postFieldsProvider.notifier)
             .fetchFields(int.parse(_selectedCategoryId!));
 
         // Trigger brand provider reload with new category
-        print(
-          'PostAddScreen: Triggering brand provider reload for category: $_selectedCategoryId',
-        );
         ref
             .read(brandProvider.notifier)
             .fetchBrands(int.parse(_selectedCategoryId!));
@@ -184,7 +164,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
       // Load location (Thana)
       if (data['thana_id'] != null) {
-        print('PostAddScreen: Attempting to load thana');
         if (data['thana'] != null && data['thana'] is Map) {
           final thanaData = data['thana'] as Map<String, dynamic>;
           _selectedArea = Thana(
@@ -193,9 +172,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: thanaData['name_bn']?.toString(),
           );
           _locationDisplayName = _selectedArea?.nameEn;
-          print(
-            'PostAddScreen: Thana loaded from map - _selectedArea: $_selectedArea, _locationDisplayName: $_locationDisplayName',
-          );
         } else if (data['thana'] is List && data['thana'].isNotEmpty) {
           // Handle case where thana is an array
           final thanaData = data['thana'][0] as Map<String, dynamic>;
@@ -205,23 +181,14 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: thanaData['name_bn']?.toString(),
           );
           _locationDisplayName = _selectedArea?.nameEn;
-          print(
-            'PostAddScreen: Thana loaded from array - _selectedArea: $_selectedArea, _locationDisplayName: $_locationDisplayName',
-          );
         } else {
           // If thana object is not available, fetch it by ID
-          print('PostAddScreen: Thana object not available, fetching by ID');
           _loadThanaById(data['thana_id']);
         }
       }
 
       // Load brand if available
       if (data['brand_id'] != null) {
-        print(
-          'PostAddScreen: Attempting to load brand with ID: ${data['brand_id']}',
-        );
-        print('PostAddScreen: brand data: ${data['brand']}');
-
         if (data['brand'] != null && data['brand'] is Map) {
           final brandData = data['brand'] as Map<String, dynamic>;
           _selectedBrand = Brand(
@@ -230,14 +197,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: brandData['name_bn']?.toString(),
           );
           _selectedBrandName = _selectedBrand?.nameEn;
-          print(
-            'PostAddScreen: Brand loaded from map - _selectedBrand: $_selectedBrand, _selectedBrandName: $_selectedBrandName',
-          );
 
           // Trigger model provider reload with new brand
-          print(
-            'PostAddScreen: Triggering model provider reload for brand: ${data['brand_id']}',
-          );
           ref.read(modelProvider.notifier).fetchModels(data['brand_id']);
         } else if (data['brand'] is List && data['brand'].isNotEmpty) {
           // Handle case where brand is an array
@@ -248,30 +209,16 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: brandData['name_bn']?.toString(),
           );
           _selectedBrandName = _selectedBrand?.nameEn;
-          print(
-            'PostAddScreen: Brand loaded from array - _selectedBrand: $_selectedBrand, _selectedBrandName: $_selectedBrandName',
-          );
 
           // Trigger model provider reload with new brand
-          print(
-            'PostAddScreen: Triggering model provider reload for brand: ${data['brand_id']}',
-          );
           ref.read(modelProvider.notifier).fetchModels(data['brand_id']);
         } else {
-          print(
-            'PostAddScreen: Brand object not available, will load from brand provider',
-          );
           _loadBrandById(data['brand_id']);
         }
       }
 
       // Load model if available
       if (data['model_id'] != null) {
-        print(
-          'PostAddScreen: Attempting to load model with ID: ${data['model_id']}',
-        );
-        print('PostAddScreen: model data: ${data['model']}');
-
         if (data['model'] != null && data['model'] is Map) {
           final modelData = data['model'] as Map<String, dynamic>;
           _selectedModel = ProductModel(
@@ -280,9 +227,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: modelData['name_bn']?.toString(),
           );
           _selectedModelName = _selectedModel?.nameEn;
-          print(
-            'PostAddScreen: Model loaded from map - _selectedModel: $_selectedModel, _selectedModelName: $_selectedModelName',
-          );
         } else if (data['model'] is List && data['model'].isNotEmpty) {
           // Handle case where model is an array
           final modelData = data['model'][0] as Map<String, dynamic>;
@@ -292,20 +236,13 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: modelData['name_bn']?.toString(),
           );
           _selectedModelName = _selectedModel?.nameEn;
-          print(
-            'PostAddScreen: Model loaded from array - _selectedModel: $_selectedModel, _selectedModelName: $_selectedModelName',
-          );
         } else {
-          print(
-            'PostAddScreen: Model object not available, will load from model provider',
-          );
           _loadModelById(data['model_id']);
         }
       }
 
       // Load field values from field_values array
       if (data['field_values'] != null) {
-        print('PostAddScreen: Loading field values');
         final fieldValues = data['field_values'] as List<dynamic>;
         for (var fv in fieldValues) {
           if (fv['field_slug'] != null) {
@@ -313,14 +250,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             final value = fv['value'];
             if (value != null) {
               _fieldValues[slug] = value;
-              print('PostAddScreen: Field value loaded: $slug = $value');
             }
             // Handle value_ids for select fields
             if (fv['value_ids'] != null) {
               _fieldValues[slug] = fv['value_ids'];
-              print(
-                'PostAddScreen: Field value_ids loaded: $slug = ${fv['value_ids']}',
-              );
             }
           }
         }
@@ -329,18 +262,15 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       // Load direct fields from post object
       if (data['title'] != null) {
         _fieldValues['title'] = data['title'];
-        print('PostAddScreen: Title loaded: ${data['title']}');
       }
       if (data['description'] != null) {
         _fieldValues['description'] = data['description'];
-        print('PostAddScreen: Description loaded: ${data['description']}');
       }
 
       // Load images
       if (data['image'] != null) {
         final images = data['image'] as List<dynamic>;
         _uploadedImages.addAll(images.cast<String>());
-        print('PostAddScreen: Loaded ${images.length} images');
       }
 
       // Validate form
@@ -350,22 +280,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       _editData = data;
 
       // Debug print after setState
-      print(
-        'PostAddScreen: After setState - _selectedCategoryId: $_selectedCategoryId, _selectedCategoryName: $_selectedCategoryName',
-      );
-      print(
-        'PostAddScreen: After setState - _selectedArea: $_selectedArea, _locationDisplayName: $_locationDisplayName',
-      );
-      print(
-        'PostAddScreen: After setState - _selectedBrand: $_selectedBrand, _selectedBrandName: $_selectedBrandName',
-      );
-      print(
-        'PostAddScreen: After setState - _selectedModel: $_selectedModel, _selectedModelName: $_selectedModelName',
-      );
-      print('PostAddScreen: After setState - _fieldValues: $_fieldValues');
-      print(
-        'PostAddScreen: After setState - _uploadedImages: $_uploadedImages',
-      );
     });
   }
 
@@ -386,17 +300,12 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
     if (field == null) return null;
 
-    print(
-      '[POSTDBG] Converting field: $slug, type: ${field.type}, value: $value (${value.runtimeType})',
-    );
-
     // Radio and select fields: convert List to int
     if (field.type == 'radio' || field.type == 'select') {
       if (value is List && value.isNotEmpty) {
         final firstValue = value.first;
         if (firstValue is String) {
           final intValue = int.tryParse(firstValue);
-          print('[POSTDBG] Converted radio/select $slug: $value -> $intValue');
           return intValue;
         }
         if (firstValue is int) return firstValue;
@@ -418,7 +327,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             })
             .whereType<int>()
             .toList();
-        print('[POSTDBG] Converted checkbox $slug: $value -> $intList');
         return intList;
       }
       return value;
@@ -432,26 +340,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   void _applyFieldValuesAfterFieldsLoaded() {
     if (_editData == null) return;
 
-    print('[POSTDBG] ========== APPLY FIELD VALUES ==========');
-    print(
-      '[POSTDBG] Original category_id from editData: ${_editData['category_id']}',
-    );
-    print('[POSTDBG] Current _selectedCategoryId: $_selectedCategoryId');
-    print(
-      '[POSTDBG] Category changed: ${_editData['category_id'].toString() != _selectedCategoryId}',
-    );
-
     // Fix #11: If category changed from original, apply nothing at all
     if (_editData['category_id'].toString() != _selectedCategoryId) {
-      print(
-        '[POSTDBG] Category changed from original - skipping all field value restoration',
-      );
-      print('[POSTDBG] =======================================');
       return;
     }
 
-    print('PostAddScreen: Applying field values after dynamic fields loaded');
-    print('PostAddScreen: _editData: $_editData');
     setState(() {
       // Re-apply field values after dynamic fields are loaded
       if (_editData['field_values'] != null) {
@@ -462,20 +355,13 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             final value = fv['value'];
             // Skip brand and model since they are handled by dedicated selectors
             if (slug == 'brand' || slug == 'model') {
-              print(
-                'PostAddScreen: Skipping $slug - handled by dedicated selector',
-              );
               continue;
             }
             if (value != null) {
               _fieldValues[slug] = value;
-              print('PostAddScreen: Field value re-applied: $slug = $value');
             }
             if (fv['value_ids'] != null) {
               _fieldValues[slug] = fv['value_ids'];
-              print(
-                'PostAddScreen: Field value_ids re-applied: $slug = ${fv['value_ids']}',
-              );
             }
           }
         }
@@ -484,8 +370,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         _fieldValues['title'] = _editData['title'];
       if (_editData['description'] != null)
         _fieldValues['description'] = _editData['description'];
-
-      print('PostAddScreen: Field values after applying: $_fieldValues');
 
       // Convert loaded values to correct types
       final postFieldsState = ref.read(postFieldsProvider);
@@ -498,19 +382,13 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         );
         if (converted != value) {
           _fieldValues[key] = converted;
-          print('[POSTDBG] Converted loaded field $key: $value -> $converted');
         }
       });
-
-      print('[POSTDBG] Field values after conversion: $_fieldValues');
-      print('[POSTDBG] =======================================');
     });
   }
 
   Future<void> _loadBrandById(dynamic brandId) async {
     try {
-      print('PostAddScreen: _loadBrandById called with ID: $brandId');
-
       // Use brand provider to find the brand by ID
       final brandState = ref.read(brandProvider);
 
@@ -523,10 +401,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       setState(() {
         _selectedBrand = brand;
         _selectedBrandName = brand.nameEn;
-        print('PostAddScreen: Found brand: ${brand.nameEn}');
       });
     } catch (e) {
-      print('PostAddScreen: Error loading brand: $e');
       // Set placeholder on error
       setState(() {
         _selectedBrand = Brand(
@@ -541,8 +417,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
   Future<void> _loadModelById(dynamic modelId) async {
     try {
-      print('PostAddScreen: _loadModelById called with ID: $modelId');
-
       // Use model provider to find the model by ID
       final modelState = ref.read(modelProvider);
 
@@ -555,10 +429,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       setState(() {
         _selectedModel = model;
         _selectedModelName = model.nameEn;
-        print('PostAddScreen: Found model: ${model.nameEn}');
       });
     } catch (e) {
-      print('PostAddScreen: Error loading model: $e');
       // Set placeholder on error
       setState(() {
         _selectedModel = ProductModel(
@@ -573,8 +445,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
   Future<void> _loadThanaById(dynamic thanaId) async {
     try {
-      print('PostAddScreen: _loadThanaById called with ID: $thanaId');
-
       // Use location provider to find the thana by ID
       final locationState = ref.read(locationProvider);
 
@@ -605,7 +475,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         setState(() {
           _selectedArea = foundThana;
           _locationDisplayName = thanaName;
-          print('PostAddScreen: Found thana: $thanaName');
         });
       } else {
         // Set placeholder if not found
@@ -616,11 +485,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             nameBn: 'এলাক $thanaId',
           );
           _locationDisplayName = _selectedArea?.nameEn;
-          print('PostAddScreen: Set placeholder thana with ID: $thanaId');
         });
       }
     } catch (e) {
-      print('PostAddScreen: Error loading thana: $e');
       // Set placeholder on error
       setState(() {
         _selectedArea = Thana(
@@ -642,28 +509,15 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
     // Listen for post fields loading completion
     ref.listen(postFieldsProvider, (previous, next) {
-      print(
-        'PostAddScreen: Post fields state changed - previous isLoading: ${previous?.isLoading}, next isLoading: ${next.isLoading}, error: ${next.error}',
-      );
       if (previous?.isLoading == true &&
           !next.isLoading &&
           next.error == null) {
-        print('PostAddScreen: Post fields loaded, applying field values');
         _applyFieldValuesAfterFieldsLoaded();
 
         // Check if brand and model fields exist in dynamic fields
         setState(() {
           _hasBrandField = next.fields.any((field) => field.slug == 'brand');
         });
-        print('[POSTDBG] Post fields loaded');
-        print('[POSTDBG] Category ID: $_selectedCategoryId');
-        print('[POSTDBG] _hasBrandField: $_hasBrandField');
-        print(
-          '[POSTDBG] Field slugs: ${next.fields.map((f) => f.slug).toList()}',
-        );
-        print(
-          '[POSTDBG] Required fields: ${next.fields.where((f) => f.pivot.required).map((f) => f.slug).toList()}',
-        );
 
         // Re-run validation after fields load (fix for issue #10)
         _validateForm();
@@ -672,9 +526,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
     // Listen for brand provider loading completion
     ref.listen(brandProvider, (previous, next) {
-      print(
-        'PostAddScreen: Brand state changed - previous isLoading: ${previous?.isLoading}, next isLoading: ${next.isLoading}, brands count: ${next.brands.length}, error: ${next.error}',
-      );
       // Note: _hasBrands is no longer used for validation - _hasBrandField controls that
     });
 
@@ -819,13 +670,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
   Future<void> _initializeDraft() async {
     if (_currentPostId != null) {
-      print(
-        'PostAddScreen: Draft already initialized with ID: $_currentPostId',
-      );
       return;
     }
 
-    print('PostAddScreen: Initializing draft...');
     try {
       final postId = await ref
           .read(draftPostProvider.notifier)
@@ -833,20 +680,16 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       setState(() {
         _currentPostId = postId;
       });
-      print('PostAddScreen: Draft initialized with ID: $postId');
     } catch (e) {
-      print('PostAddScreen: Error initializing draft: $e');
       // Continue even if draft initialization fails
     }
   }
 
   Future<void> _saveDraft() async {
     if (_currentPostId == null) {
-      print('PostAddScreen: No draft ID, skipping save');
       return;
     }
 
-    print('PostAddScreen: Saving draft with ID: $_currentPostId');
     try {
       // Create a copy of field_values without brand and model
       final fieldValuesCopy = Map<String, dynamic>.from(_fieldValues);
@@ -864,33 +707,20 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         'field_values': fieldValuesCopy,
         'images': _uploadedImages,
       });
-      print('PostAddScreen: Draft saved successfully');
-    } catch (e) {
-      print('PostAddScreen: Error saving draft: $e');
-    }
+    } catch (e) {}
   }
 
   Future<void> _handleImageSelection(List<File> imageFiles) async {
-    print(
-      'PostAddScreen: _handleImageSelection called with ${imageFiles.length} files',
-    );
-
     if (_currentPostId == null) {
-      print('PostAddScreen: No draft ID, initializing draft');
       await _initializeDraft();
     }
 
     if (_currentPostId == null) {
-      print('PostAddScreen: Draft initialization failed');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to initialize draft')),
       );
       return;
     }
-
-    print(
-      'PostAddScreen: Starting background image upload for post ID: $_currentPostId',
-    );
 
     setState(() {
       _isUploadingImages = true;
@@ -903,41 +733,22 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
   Future<void> _uploadImagesInBackground(List<File> imageFiles) async {
     try {
       final apiClient = ApiClient();
-      print(
-        'PostAddScreen: Calling API uploadImages with ${imageFiles.length} files',
-      );
 
       final response = await apiClient.uploadImages(
         'posts/image/upload/$_currentPostId',
         files: imageFiles,
       );
 
-      print('PostAddScreen: Upload response status: ${response.statusCode}');
-      print('PostAddScreen: Upload response data: ${response.data}');
-
       if (response.statusCode == 200) {
         final data = response.data;
-        print('PostAddScreen: Response data type: ${data.runtimeType}');
-        print(
-          'PostAddScreen: Response data keys: ${data is Map ? data.keys : 'not a map'}',
-        );
 
         if (data != null && data['image'] != null) {
           final List<dynamic> newImages = data['image'];
-          print(
-            'PostAddScreen: Successfully uploaded ${newImages.length} images',
-          );
-          print('PostAddScreen: New images: $newImages');
 
           setState(() {
             _uploadedImages.addAll(newImages.cast<String>());
             _isUploadingImages = false;
           });
-
-          print(
-            'PostAddScreen: Total uploaded images: ${_uploadedImages.length}',
-          );
-          print('PostAddScreen: Current uploaded images: $_uploadedImages');
 
           _saveDraft();
 
@@ -947,20 +758,15 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             );
           }
         } else {
-          print('PostAddScreen: Response data or image array is null');
-          print('PostAddScreen: Full response: $data');
-
           // Try to get image from different possible response structures
           if (data != null) {
             if (data['images'] != null) {
-              print('PostAddScreen: Found images in "images" key');
               final List<dynamic> newImages = data['images'];
               setState(() {
                 _uploadedImages.addAll(newImages.cast<String>());
                 _isUploadingImages = false;
               });
             } else if (data['data'] != null && data['data']['image'] != null) {
-              print('PostAddScreen: Found images in data.image');
               final List<dynamic> newImages = data['data']['image'];
               setState(() {
                 _uploadedImages.addAll(newImages.cast<String>());
@@ -970,15 +776,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
           }
         }
       } else {
-        print(
-          'PostAddScreen: Upload failed with status: ${response.statusCode}',
-        );
         setState(() {
           _isUploadingImages = false;
         });
       }
     } catch (e) {
-      print('PostAddScreen: Error uploading images: $e');
       setState(() {
         _isUploadingImages = false;
       });
@@ -1026,54 +828,31 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     // Validate all required fields
     bool isValid = true;
 
-    print('[POSTDBG] ========== VALIDATION START ==========');
-    print('[POSTDBG] _hasBrandField: $_hasBrandField');
-    print(
-      '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
-    );
-    print(
-      '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
-    );
-    print('[POSTDBG] _fieldValues: $_fieldValues');
-
     // Check location
     if (_selectedArea == null) {
       isValid = false;
-      print('[POSTDBG] ❌ FAILED: Location is required');
-    } else {
-      print('[POSTDBG] ✓ OK: Location selected');
-    }
+    } else {}
 
     // Check category
     if (_selectedCategoryId == null) {
       isValid = false;
-      print('[POSTDBG] ❌ FAILED: Category is required');
-    } else {
-      print('[POSTDBG] ✓ OK: Category selected');
-    }
+    } else {}
 
     // Check brand and model only if brand field exists in dynamic fields
     if (_hasBrandField) {
       if (_selectedBrand == null) {
         isValid = false;
-        print('[POSTDBG] ❌ FAILED: Brand is required but not selected');
-      } else {
-        print('[POSTDBG] ✓ OK: Brand selected');
-      }
+      } else {}
 
       if (_selectedModel == null) {
         isValid = false;
-        print('[POSTDBG] ❌ FAILED: Model is required but not selected');
-      } else {
-        print('[POSTDBG] ✓ OK: Model selected');
-      }
+      } else {}
     }
 
     // Check dynamic fields (skip brand and model since they have dedicated selectors)
     // Only validate dynamic fields if brand and model are selected (when brand field exists)
     if (!_hasBrandField || (_selectedBrand != null && _selectedModel != null)) {
       final postFieldsState = ref.read(postFieldsProvider);
-      print('[POSTDBG] ========== REQUIRED FIELDS CHECK ==========');
       for (final field in postFieldsState.fields) {
         // Skip brand and model fields
         if (field.slug == 'brand' || field.slug == 'model') continue;
@@ -1083,45 +862,29 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             value == null ||
             (value is List && value.isEmpty) ||
             (value is String && value.isEmpty);
-        final runtimeType = value?.runtimeType.toString();
-
-        print(
-          '[POSTDBG] Field: ${field.slug} | Type: ${field.type} | Value: $value | RuntimeType: $runtimeType | IsEmpty: $isEmpty | Required: ${field.pivot.required}',
-        );
 
         if (field.pivot.required && isEmpty) {
           isValid = false;
           _fieldErrors[field.slug] = '${field.title} is required';
-          print('[POSTDBG] ❌ FAILED: ${field.slug} is required');
         } else {
           // Clear error if field is now valid
           _fieldErrors.remove(field.slug);
-          if (field.pivot.required) {
-            print('[POSTDBG] ✓ OK: ${field.slug} is valid');
-          }
+          if (field.pivot.required) {}
         }
       }
 
       // Check description field (always required when dynamic fields are shown)
       final descValue = _fieldValues['description'];
       final descEmpty = descValue == null || descValue.toString().isEmpty;
-      print(
-        '[POSTDBG] Field: description | Type: text | Value: $descValue | RuntimeType: ${descValue?.runtimeType} | IsEmpty: $descEmpty | Required: true',
-      );
 
       if (descEmpty) {
         isValid = false;
         _fieldErrors['description'] = 'Description is required';
-        print('[POSTDBG] ❌ FAILED: Description is required');
       } else {
         _fieldErrors.remove('description');
-        print('[POSTDBG] ✓ OK: Description is valid');
       }
     }
 
-    print('[POSTDBG] ========== VALIDATION END ==========');
-    print('[POSTDBG] Final Result: Form is ${isValid ? "VALID" : "INVALID"}');
-    print('[POSTDBG] =======================================');
     setState(() {
       _isFormValid = isValid;
     });
@@ -1133,20 +896,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       _hasAttemptedSubmit = true;
     });
 
-    print('[POSTDBG] ========== SUBMIT HANDLER ==========');
-    print('[POSTDBG] _hasBrandField: $_hasBrandField');
-    print(
-      '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
-    );
-    print(
-      '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
-    );
-    print('[POSTDBG] _fieldValues: $_fieldValues');
-    print('[POSTDBG] _isFormValid: $_isFormValid');
-    print('[POSTDBG] =======================================');
-
     if (!_isFormValid) {
-      print('[POSTDBG] ❌ SUBMIT BLOCKED: Form is invalid');
       return;
     }
 
@@ -1212,12 +962,9 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         '__initialized': true,
       };
 
-      print('PostAddScreen: Building info from _fieldValues: $_fieldValues');
-
       // Get currently loaded fields to filter which slugs to include
       final postFieldsState = ref.read(postFieldsProvider);
       final validSlugs = postFieldsState.fields.map((f) => f.slug).toSet();
-      print('[POSTDBG] Valid field slugs for current category: $validSlugs');
 
       // Add all field values directly to info object, but only for currently loaded fields
       _fieldValues.forEach((key, value) {
@@ -1229,7 +976,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
 
         // Fix #12: Only include slugs that exist in currently loaded fields
         if (!validSlugs.contains(key)) {
-          print('[POSTDBG] Skipping field not in current category: $key');
           return;
         }
 
@@ -1240,9 +986,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
           postFieldsState,
         );
         info[key] = convertedValue;
-        print(
-          '[POSTDBG] Added field to info: $key = $convertedValue (original: $value)',
-        );
       });
 
       // Add brand and model to info object
@@ -1250,32 +993,23 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       if (_hasBrandField) {
         if (_selectedBrand != null) {
           info['brand'] = _selectedBrand!.id;
-          print('[POSTDBG] Added brand to info: ${_selectedBrand!.id}');
         } else {
           info['brand'] = null;
-          print('[POSTDBG] Added brand to info: null (no brand selected)');
         }
         if (_selectedModel != null) {
           info['model'] = _selectedModel!.id;
-          print('[POSTDBG] Added model to info: ${_selectedModel!.id}');
         } else {
           info['model'] = null;
-          print('[POSTDBG] Added model to info: null (no model selected)');
         }
       } else {
         info['brand'] = null;
         info['model'] = null;
-        print(
-          '[POSTDBG] Category has no brand field - set brand/model to null',
-        );
       }
 
       // Add description if exists
       if (_fieldValues.containsKey('description')) {
         info['description'] = _fieldValues['description'];
       }
-
-      print('PostAddScreen: Final info object: $info');
 
       // Build the payload
       // Fix #13: Convert category_id to int
@@ -1288,21 +1022,11 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         'status': 'published',
       };
 
-      print('[POSTDBG] ========== SUBMIT PAYLOAD ==========');
-      final payloadStr = const JsonEncoder.withIndent('  ').convert(payload);
-      print('[POSTDBG] Payload: $payloadStr');
-      print('[POSTDBG] =======================================');
-
-      print('PostAddScreen: Submitting post with ID: $_currentPostId');
-
       final apiClient = ApiClient();
       final response = await apiClient.submitPost(
         _currentPostId!,
         payload: payload,
       );
-
-      print('PostAddScreen: Submit response status: ${response.statusCode}');
-      print('PostAddScreen: Submit response data: ${response.data}');
 
       if (response.statusCode == 200) {
         // Post submitted successfully
@@ -1342,7 +1066,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         );
       }
     } catch (e) {
-      print('PostAddScreen: Error submitting post: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error submitting post: $e')));
@@ -2290,19 +2013,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
         _isFormValid &&
         (!_hasBrandField || (_selectedBrand != null && _selectedModel != null));
 
-    print('[POSTDBG] ========== SUBMIT BUTTON STATE ==========');
-    print('[POSTDBG] canSubmit: $canSubmit');
-    print('[POSTDBG] _isFormValid: $_isFormValid');
-    print('[POSTDBG] _hasBrandField: $_hasBrandField');
-    print(
-      '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
-    );
-    print(
-      '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
-    );
-    print('[POSTDBG] _isSubmitting: $_isSubmitting');
-    print('[POSTDBG] =======================================');
-
     return Material(
       color: canSubmit
           ? theme.colorScheme.primary
@@ -2367,9 +2077,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => CategorySelectorBottomSheet(
         onCategorySelected: (categoryId, categoryName) {
-          print('[POSTDBG] ========== CATEGORY SELECTED ==========');
-          print('[POSTDBG] Category ID: $categoryId');
-          print('[POSTDBG] Category Name: $categoryName');
           setState(() {
             _selectedCategoryId = categoryId;
             _selectedCategoryName = categoryName;
@@ -2386,10 +2093,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             _fieldValues.remove('model');
             // Reset hasBrandField flag
             _hasBrandField = false;
-            print('[POSTDBG] Cleared brand/model, _hasBrandField set to false');
-            print(
-              '[POSTDBG] _selectedBrand: $_selectedBrand, _selectedModel: $_selectedModel',
-            );
             // Fetch fields for the new category
             ref
                 .read(postFieldsProvider.notifier)
@@ -2400,7 +2103,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
           _saveDraft();
           // Validate form after category change
           _validateForm();
-          print('[POSTDBG] =======================================');
         },
       ),
     );
@@ -2416,10 +2118,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       builder: (context) => BrandSelectorBottomSheet(
         brands: brandState.brands,
         onBrandSelected: (brand) {
-          print('[POSTDBG] ========== BRAND SELECTED ==========');
-          print('[POSTDBG] Brand ID: ${brand.id}');
-          print('[POSTDBG] Brand Name: ${brand.displayName}');
-          print('[POSTDBG] Brand Type: ${brand.runtimeType}');
           setState(() {
             _selectedBrand = brand;
             _selectedBrandName = brand.displayName;
@@ -2431,16 +2129,6 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               ref.read(modelProvider.notifier).fetchModels(brand.id!);
             }
           });
-          print(
-            '[POSTDBG] _selectedBrand: $_selectedBrand (ID: ${_selectedBrand?.id})',
-          );
-          print(
-            '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
-          );
-          print(
-            '[POSTDBG] _fieldValues[brand]: ${_fieldValues['brand']} (type: ${_fieldValues['brand']?.runtimeType})',
-          );
-          print('[POSTDBG] =============================');
           _saveDraft();
         },
       ),
@@ -2457,21 +2145,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
       builder: (context) => ModelSelectorBottomSheet(
         models: modelState.models,
         onModelSelected: (model) {
-          print('[POSTDBG] ========== MODEL SELECTED ==========');
-          print('[POSTDBG] Model ID: ${model.id}');
-          print('[POSTDBG] Model Name: ${model.displayName}');
-          print('[POSTDBG] Model Type: ${model.runtimeType}');
           setState(() {
             _selectedModel = model;
             _selectedModelName = model.displayName;
           });
-          print(
-            '[POSTDBG] _selectedModel: $_selectedModel (ID: ${_selectedModel?.id})',
-          );
-          print(
-            '[POSTDBG] _fieldValues[model]: ${_fieldValues['model']} (type: ${_fieldValues['model']?.runtimeType})',
-          );
-          print('[POSTDBG] =============================');
           _saveDraft();
         },
       ),

@@ -124,12 +124,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
               prefixText: '৳ ',
             ),
             onChanged: (value) {
-              print('[POSTDBG] ========== FIELD CHANGE ==========');
-              print('[POSTDBG] Slug: ${widget.field.slug}');
-              print('[POSTDBG] Type: ${widget.field.type}');
-              print('[POSTDBG] New Value: $value');
-              print('[POSTDBG] Value Type: ${value.runtimeType}');
-              print('[POSTDBG] =============================');
               widget.onChanged(value);
             },
           ),
@@ -224,12 +218,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                 value: item.id.toString(),
                 groupValue: selectedValue,
                 onChanged: (value) {
-                  print('[POSTDBG] ========== FIELD CHANGE ==========');
-                  print('[POSTDBG] Slug: ${widget.field.slug}');
-                  print('[POSTDBG] Type: ${widget.field.type}');
-                  print('[POSTDBG] New Value: $value');
-                  print('[POSTDBG] Value Type: ${value.runtimeType}');
-                  print('[POSTDBG] =============================');
                   // Radio should store as array
                   widget.onChanged([value]);
                 },
@@ -328,12 +316,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                   field: widget.field,
                   initialValue: selectedValue,
                   onItemSelected: (value) {
-                    print('[POSTDBG] ========== FIELD CHANGE ==========');
-                    print('[POSTDBG] Slug: ${widget.field.slug}');
-                    print('[POSTDBG] Type: ${widget.field.type}');
-                    print('[POSTDBG] New Value: $value');
-                    print('[POSTDBG] Value Type: ${value.runtimeType}');
-                    print('[POSTDBG] =============================');
                     // Select should store as array
                     widget.onChanged([value]);
                   },
@@ -499,12 +481,6 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                     } else {
                       currentList.remove(item.id);
                     }
-                    print('[POSTDBG] ========== FIELD CHANGE ==========');
-                    print('[POSTDBG] Slug: ${widget.field.slug}');
-                    print('[POSTDBG] Type: ${widget.field.type}');
-                    print('[POSTDBG] New Value: $currentList');
-                    print('[POSTDBG] Value Type: List<int>');
-                    print('[POSTDBG] =============================');
                     widget.onChanged(currentList);
                   },
                   activeColor: theme.colorScheme.primary,

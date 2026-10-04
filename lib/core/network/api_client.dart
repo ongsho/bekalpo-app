@@ -51,21 +51,12 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
 
-          // Log request
-          _logRequest(options);
-
           handler.next(options);
         },
         onResponse: (response, handler) {
-          // Log response
-          _logResponse(response);
-
           handler.next(response);
         },
         onError: (error, handler) {
-          // Log error
-          _logError(error);
-
           // Convert Dio error to ApiException
           final apiException = _handleDioError(error);
 
@@ -234,60 +225,6 @@ class ApiClient {
   Future<void> clearAuthToken() async {
     // This method is now handled by AuthNotifier
     // Kept for compatibility if needed elsewhere
-  }
-
-  /// Log request details
-  void _logRequest(RequestOptions options) {
-    print('[POSTDBG] ========== REQUEST ==========');
-    print('[POSTDBG] Method: ${options.method}');
-    print('[POSTDBG] URL: ${options.uri}');
-    if (options.data != null) {
-      if (options.data is FormData) {
-        print(
-          '[POSTDBG] Payload: <FormData - ${options.data.fields.length} fields>',
-        );
-        options.data.fields.forEach((field) {
-          print(
-            '[POSTDBG]   - ${field.key}: ${field.value is MultipartFile ? "MultipartFile(${field.value.filename})" : field.value}',
-          );
-        });
-      } else {
-        final dataStr = options.data is String
-            ? options.data
-            : const JsonEncoder.withIndent('  ').convert(options.data);
-        print('[POSTDBG] Payload: $dataStr');
-      }
-    }
-    if (options.queryParameters.isNotEmpty) {
-      print('[POSTDBG] Query Params: ${options.queryParameters}');
-    }
-    print('[POSTDBG] ==============================');
-  }
-
-  /// Log response details
-  void _logResponse(Response response) {
-    print('[POSTDBG] ========== RESPONSE ==========');
-    print('[POSTDBG] Status: ${response.statusCode}');
-    print('[POSTDBG] URL: ${response.requestOptions.uri}');
-    final dataStr = const JsonEncoder.withIndent('  ').convert(response.data);
-    print('[POSTDBG] Body: $dataStr');
-    print('[POSTDBG] ==============================');
-  }
-
-  /// Log error details
-  void _logError(DioException error) {
-    print('[POSTDBG] ========== ERROR ==========');
-    print('[POSTDBG] Type: ${error.type}');
-    print('[POSTDBG] Message: ${error.message}');
-    print('[POSTDBG] URL: ${error.requestOptions.uri}');
-    if (error.response != null) {
-      print('[POSTDBG] Status: ${error.response?.statusCode}');
-      final dataStr = const JsonEncoder.withIndent(
-        '  ',
-      ).convert(error.response?.data);
-      print('[POSTDBG] Body: $dataStr');
-    }
-    print('[POSTDBG] =============================');
   }
 
   // HTTP Methods

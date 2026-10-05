@@ -163,6 +163,10 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
             onChanged: (value) {
               widget.onChanged(value);
             },
+            onFieldSubmitted: (value) {
+              // Unfocus when user submits (e.g., presses done on keyboard)
+              FocusScope.of(context).unfocus();
+            },
           ),
         ],
       ),
@@ -267,6 +271,8 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                             onTap: () {
                               widget.onChanged(year.toString());
                               Navigator.pop(context);
+                              // Unfocus to prevent keyboard from reopening
+                              FocusScope.of(context).unfocus();
                             },
                           );
                         },
@@ -385,6 +391,10 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
         errorText: widget.errorText,
       ),
       onChanged: widget.onChanged,
+      onFieldSubmitted: (value) {
+        // Unfocus when user submits (e.g., presses done on keyboard)
+        FocusScope.of(context).unfocus();
+      },
     );
   }
 
@@ -414,6 +424,10 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
         errorText: widget.errorText,
       ),
       onChanged: widget.onChanged,
+      onFieldSubmitted: (value) {
+        // Unfocus when user submits (e.g., presses done on keyboard)
+        FocusScope.of(context).unfocus();
+      },
     );
   }
 
@@ -476,6 +490,8 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                 onChanged: (value) {
                   // Radio should store as array
                   widget.onChanged([value]);
+                  // Unfocus to prevent keyboard from reopening
+                  FocusScope.of(context).unfocus();
                 },
                 activeColor: theme.colorScheme.primary,
               );
@@ -574,6 +590,8 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                   onItemSelected: (value) {
                     // Select should store as array
                     widget.onChanged([value]);
+                    // Unfocus to prevent keyboard from reopening
+                    FocusScope.of(context).unfocus();
                   },
                 ),
               );
@@ -738,6 +756,8 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
                       currentList.remove(item.id);
                     }
                     widget.onChanged(currentList);
+                    // Unfocus to prevent keyboard from staying open
+                    FocusScope.of(context).unfocus();
                   },
                   activeColor: theme.colorScheme.primary,
                 );

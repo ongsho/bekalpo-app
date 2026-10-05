@@ -352,6 +352,7 @@ class ApiClient {
   Future<Response> uploadImages(
     String path, {
     required List<File> files,
+    List<String>? existingImages,
     Map<String, dynamic>? formData,
     Options? options,
     CancelToken? cancelToken,
@@ -359,24 +360,29 @@ class ApiClient {
   }) async {
     final Map<String, dynamic> formDataMap = {};
 
+    // Store the temporary keys for new files
+    final List<String> newFileKeys = [];
+
     // Add multiple files with dynamic keys
     for (int i = 0; i < files.length; i++) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileKey = 'new_${i}_$timestamp';
       final multipartFile = await MultipartFile.fromFile(
         files[i].path,
         filename: files[i].path.split('/').last,
       );
-      formDataMap['new_${i}_${DateTime.now().millisecondsSinceEpoch}'] =
-          multipartFile;
+      formDataMap[fileKey] = multipartFile;
+      newFileKeys.add(fileKey);
     }
 
-    // Add ordered keys (filter out the orderedKeys itself)
-    final orderedKeys = formDataMap.keys
-        .where((key) => key != 'orderedKeys')
-        .toList();
-    formDataMap['orderedKeys'] = jsonEncode(orderedKeys);
+    // Order: existing URLs first, then new keys
+    final List<String> orderedKeys = [
+      ...(existingImages ?? []),
+      ...newFileKeys,
+    ];
 
-    print('API Client: Upload images with orderedKeys: $orderedKeys');
-    print('API Client: Encoded orderedKeys: ${jsonEncode(orderedKeys)}');
+    // Add ordered keys with all images (new + existing)
+    formDataMap['orderedKeys'] = jsonEncode(orderedKeys);
 
     // Add additional form data
     if (formData != null) {
@@ -400,7 +406,7 @@ class ApiClient {
   }) async {
     return _dio.post(
       path,
-      data: {'orderedKeys': imageUrls},
+      data: {'orderedKeys': jsonEncode(imageUrls)},
       options: options,
       cancelToken: cancelToken,
     );
@@ -484,7 +490,11 @@ class RetryInterceptor extends Interceptor {
 
       // Retry the request
       try {
-        final response = await dio.fetch(err.requestOptions);
+        final opts = err.requestOptions;
+        if (opts.data is FormData) {
+          opts.data = (opts.data as FormData).clone();
+        }
+        final response = await dio.fetch(opts);
         handler.resolve(response);
       } catch (e) {
         handler.next(err);

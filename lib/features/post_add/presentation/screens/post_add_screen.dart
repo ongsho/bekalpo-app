@@ -710,119 +710,90 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
     } catch (e) {}
   }
 
-  Future<void> _handleImageSelection(List<File> imageFiles) async {
-    if (_currentPostId == null) {
-      await _initializeDraft();
-    }
+  List<String>? _extractImages(dynamic data) {
+    if (data is! Map) return null;
+    final raw =
+        data['image'] ??
+        data['images'] ??
+        (data['data'] is Map ? data['data']['image'] : null);
+    if (raw is! List) return null;
+    return raw.map((e) => e.toString()).toList();
+  }
 
+  void _setImages(List<String> images) {
+    setState(() {
+      _uploadedImages
+        ..clear()
+        ..addAll(images);
+    });
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void _handleImageSelection(List<File> files) {
+    setState(
+      () => _isUploadingImages = true,
+    ); // set BEFORE draft init so previews always get cleared
+    _uploadImagesInBackground(files);
+  }
+
+  Future<void> _uploadImagesInBackground(List<File> files) async {
+    if (_currentPostId == null) await _initializeDraft();
     if (_currentPostId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to initialize draft')),
-      );
+      setState(() => _isUploadingImages = false);
+      _snack('Failed to initialize draft');
       return;
     }
 
-    setState(() {
-      _isUploadingImages = true;
-    });
-
-    // Upload in background without blocking UI
-    _uploadImagesInBackground(imageFiles);
-  }
-
-  Future<void> _uploadImagesInBackground(List<File> imageFiles) async {
     try {
-      final apiClient = ApiClient();
-
-      final response = await apiClient.uploadImages(
+      final res = await ApiClient().uploadImages(
         'posts/image/upload/$_currentPostId',
-        files: imageFiles,
+        files: files,
+        existingImages: List<String>.from(
+          _uploadedImages,
+        ), // snapshot, not the live list
       );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-
-        if (data != null && data['image'] != null) {
-          final List<dynamic> newImages = data['image'];
-
-          setState(() {
-            _uploadedImages.addAll(newImages.cast<String>());
-            _isUploadingImages = false;
-          });
-
-          _saveDraft();
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Images uploaded successfully')),
-            );
-          }
-        } else {
-          // Try to get image from different possible response structures
-          if (data != null) {
-            if (data['images'] != null) {
-              final List<dynamic> newImages = data['images'];
-              setState(() {
-                _uploadedImages.addAll(newImages.cast<String>());
-                _isUploadingImages = false;
-              });
-            } else if (data['data'] != null && data['data']['image'] != null) {
-              final List<dynamic> newImages = data['data']['image'];
-              setState(() {
-                _uploadedImages.addAll(newImages.cast<String>());
-                _isUploadingImages = false;
-              });
-            }
-          }
-        }
-      } else {
-        setState(() {
-          _isUploadingImages = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isUploadingImages = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error uploading images: $e')));
-      }
-    }
-  }
-
-  Future<void> _handleImageReorder(List<String> reorderedImages) async {
-    if (_currentPostId == null) {
-      return;
-    }
-
-    try {
-      final apiClient = ApiClient();
-      final response = await apiClient.reorderImages(
-        'posts/image/upload/reorder/$_currentPostId',
-        imageUrls: reorderedImages,
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          // Images are already updated in the widget
-        });
+      final images = _extractImages(res.data);
+      if (res.statusCode == 200 && images != null) {
+        _setImages(images);
         _saveDraft();
+      } else {
+        _snack('Image upload failed');
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error reordering images: $e')));
+      _snack('Error uploading images: $e');
+    } finally {
+      if (mounted) setState(() => _isUploadingImages = false);
     }
   }
 
-  void _handleImageRemoval(int index) {
-    setState(() {
-      _uploadedImages.removeAt(index);
-    });
-    _saveDraft();
+  // Used for both reorder and remove
+  Future<void> _handleImageReorder(List<String> newOrder) async {
+    if (_currentPostId == null) return;
+    final previous = List<String>.from(_uploadedImages);
+    _setImages(newOrder); // optimistic
+    setState(() => _isUploadingImages = true);
+    try {
+      final res = await ApiClient().reorderImages(
+        'posts/image/upload/reorder/$_currentPostId',
+        imageUrls: newOrder,
+      );
+      final images = _extractImages(res.data);
+      if (images != null && mounted) _setImages(images);
+      _saveDraft();
+    } catch (e) {
+      if (mounted) _setImages(previous); // rollback
+      _snack('Could not update images: $e');
+    } finally {
+      if (mounted) setState(() => _isUploadingImages = false);
+    }
   }
+
+  Future<void> _handleImageRemoval(int index) =>
+      _handleImageReorder([..._uploadedImages]..removeAt(index));
 
   void _validateForm() {
     // Validate all required fields
@@ -1020,6 +991,7 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             : null,
         'thana_id': _selectedArea?.id,
         'status': 'published',
+        'image': _uploadedImages,
       };
 
       final apiClient = ApiClient();
@@ -2001,6 +1973,10 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
               });
               _saveDraft();
             },
+            onFieldSubmitted: (value) {
+              // Unfocus when user submits (e.g., presses done on keyboard)
+              FocusScope.of(context).unfocus();
+            },
           ),
         ],
       ),
@@ -2064,6 +2040,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             _locationDisplayName = '${area.nameEn}, ${district.nameEn}';
           });
           _saveDraft();
+          // Unfocus to prevent keyboard from reopening
+          FocusScope.of(this.context).unfocus();
         },
       ),
     );
@@ -2103,6 +2081,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
           _saveDraft();
           // Validate form after category change
           _validateForm();
+          // Unfocus to prevent keyboard from reopening
+          FocusScope.of(this.context).unfocus();
         },
       ),
     );
@@ -2130,6 +2110,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             }
           });
           _saveDraft();
+          // Unfocus to prevent keyboard from reopening
+          FocusScope.of(this.context).unfocus();
         },
       ),
     );
@@ -2150,6 +2132,8 @@ class _PostAddScreenState extends ConsumerState<PostAddScreen> {
             _selectedModelName = model.displayName;
           });
           _saveDraft();
+          // Unfocus to prevent keyboard from reopening
+          FocusScope.of(this.context).unfocus();
         },
       ),
     );

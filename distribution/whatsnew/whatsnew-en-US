@@ -1,7 +1,4 @@
-Fixed: Post add/edit workflow for category-dependent dynamic fields
-Fixed: Validation re-runs after dynamic fields load in edit mode
-Fixed: Old category field values no longer leak when changing categories
-Fixed: Payload filtered to only include current category fields
-Fixed: Brand and model set to null for categories without brand field
-Fixed: Category ID now sent as integer instead of string
-Fixed: Radio/select values converted from strings to integers
+Fixed: Image upload order is now preserved during upload
+Fixed: Keyboard auto-closes after form field submission
+Fixed: Improved image upload widget UI and state management
+Fixed: Maximum 10 images can be uploaded

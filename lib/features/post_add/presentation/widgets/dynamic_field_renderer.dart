@@ -34,6 +34,16 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
       return _buildPriceField(theme);
     }
 
+    // Special handling for year fields
+    if (_isYearField(widget.field.slug)) {
+      return _buildYearField(theme);
+    }
+
+    // Special handling for number fields
+    if (_isNumberField(widget.field.slug)) {
+      return _buildNumberField(theme);
+    }
+
     switch (widget.field.type) {
       case 'text':
         return _buildTextField(theme);
@@ -48,6 +58,33 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
       default:
         return _buildUnsupportedField(theme);
     }
+  }
+
+  bool _isYearField(String slug) {
+    final yearSlugs = ['year', 'year-of-manufacture', 'registration-year'];
+    return yearSlugs.contains(slug.toLowerCase());
+  }
+
+  bool _isNumberField(String slug) {
+    final numberSlugs = [
+      'mileage',
+      'kilometer',
+      'engine-cc',
+      'engine-capacity',
+      'power',
+      'torque',
+      'cylinders',
+      'seats',
+      'doors',
+      'weight',
+      'length',
+      'width',
+      'height',
+      'fuel_tank_capacity',
+      'battery_capacity',
+      'displacement',
+    ];
+    return numberSlugs.contains(slug.toLowerCase());
   }
 
   Widget _buildPriceField(ThemeData theme) {
@@ -129,6 +166,225 @@ class _DynamicFieldRendererState extends ConsumerState<DynamicFieldRenderer> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildYearField(ThemeData theme) {
+    final showError = widget.showValidationError;
+
+    // Generate year options (current year to current year - 50)
+    final currentYear = DateTime.now().year;
+    final years = List.generate(51, (index) => currentYear - index);
+
+    String? selectedValue = widget.value?.toString();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              widget.field.title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: showError ? Colors.red : theme.colorScheme.onSurface,
+              ),
+            ),
+            if (widget.field.pivot.required)
+              Text(
+                '*',
+                style: TextStyle(
+                  color: showError ? Colors.red : theme.colorScheme.error,
+                  fontSize: 16,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'Select ${widget.field.title}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 300,
+                      child: ListView.builder(
+                        itemCount: years.length,
+                        itemBuilder: (context, index) {
+                          final year = years[index];
+                          final isSelected = selectedValue == year.toString();
+                          return ListTile(
+                            title: Text(
+                              year.toString(),
+                              style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            trailing: isSelected
+                                ? Icon(
+                                    Icons.check_circle,
+                                    color: theme.colorScheme.primary,
+                                  )
+                                : null,
+                            onTap: () {
+                              widget.onChanged(year.toString());
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: showError ? Colors.red : theme.dividerColor,
+                width: showError ? 2 : 1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: showError
+                        ? Colors.red.withOpacity(0.1)
+                        : theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.calendar_today,
+                    color: showError ? Colors.red : Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.field.title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: showError
+                              ? Colors.red
+                              : theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        selectedValue ??
+                            widget.field.placeholder ??
+                            'Select year',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: selectedValue != null
+                              ? theme.colorScheme.onSurface
+                              : theme.colorScheme.onSurface.withOpacity(0.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (selectedValue != null)
+                  Icon(Icons.check_circle, color: Colors.green, size: 24)
+                else
+                  Icon(
+                    Icons.arrow_drop_down,
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    size: 24,
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (widget.errorText != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 4),
+            child: Text(
+              widget.errorText!,
+              style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildNumberField(ThemeData theme) {
+    final showError = widget.showValidationError;
+
+    return TextFormField(
+      initialValue: widget.value?.toString(),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText:
+            widget.field.title + (widget.field.pivot.required ? ' *' : ''),
+        hintText: widget.field.placeholder,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: showError ? Colors.red : theme.dividerColor,
+            width: showError ? 2 : 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: showError ? Colors.red : theme.dividerColor,
+            width: showError ? 2 : 1,
+          ),
+        ),
+        errorText: widget.errorText,
+      ),
+      onChanged: widget.onChanged,
     );
   }
 

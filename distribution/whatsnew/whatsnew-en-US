@@ -1,4 +1,3 @@
-Fixed: Image upload order is now preserved during upload
-Fixed: Keyboard auto-closes after form field submission
-Fixed: Improved image upload widget UI and state management
-Fixed: Maximum 10 images can be uploaded
+Improved: Photo viewer with pinch zoom, double-tap zoom, and thumbnail strip
+Improved: Cleaner post preview screen with enhanced image gallery
+Improved: Profile screen UI simplification

@@ -1,6 +1,7 @@
 import '../../../../core/network/api_service.dart';
 import '../models/auth_response.dart';
 import '../models/signin_response.dart';
+import '../models/otp_response.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -142,6 +143,83 @@ class AuthRepositoryImpl implements AuthRepository {
       return signinResponse;
     } catch (e) {
       throw Exception('Failed to verify phone: $e');
+    }
+  }
+
+  @override
+  Future<OtpResponse> sendOtp(String type, String identifier) async {
+    try {
+      final response = await ApiService.post(
+        'auth/send/otp',
+        data: {'type': type, 'identifier': identifier},
+      );
+      final otpResponse = OtpResponse.fromJson(response);
+
+      if (!otpResponse.isSuccess) {
+        throw Exception(otpResponse.message ?? 'Failed to send OTP');
+      }
+
+      return otpResponse;
+    } catch (e) {
+      throw Exception('Failed to send OTP: $e');
+    }
+  }
+
+  @override
+  Future<OtpResponse> setPasswordByEmail(
+    String email,
+    String otp,
+    String password,
+    String confirmedPassword,
+  ) async {
+    try {
+      final response = await ApiService.post(
+        'auth/set/password/email',
+        data: {
+          'email': email,
+          'otp': otp,
+          'password': password,
+          'confirmed_password': confirmedPassword,
+        },
+      );
+      final otpResponse = OtpResponse.fromJson(response);
+
+      if (!otpResponse.isSuccess) {
+        throw Exception(otpResponse.message ?? 'Failed to reset password');
+      }
+
+      return otpResponse;
+    } catch (e) {
+      throw Exception('Failed to reset password: $e');
+    }
+  }
+
+  @override
+  Future<OtpResponse> setPasswordByPhone(
+    String phone,
+    String otp,
+    String password,
+    String confirmedPassword,
+  ) async {
+    try {
+      final response = await ApiService.post(
+        'auth/set/password/phone',
+        data: {
+          'phone': phone,
+          'otp': otp,
+          'password': password,
+          'confirmed_password': confirmedPassword,
+        },
+      );
+      final otpResponse = OtpResponse.fromJson(response);
+
+      if (!otpResponse.isSuccess) {
+        throw Exception(otpResponse.message ?? 'Failed to reset password');
+      }
+
+      return otpResponse;
+    } catch (e) {
+      throw Exception('Failed to reset password: $e');
     }
   }
 }

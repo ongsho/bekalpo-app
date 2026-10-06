@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../data/repositories/auth_repository.dart';
+import 'email_forgot_password_screen.dart';
 
 class EmailSigninScreen extends ConsumerStatefulWidget {
   final String email;
@@ -224,9 +225,11 @@ class _EmailSigninScreenState extends ConsumerState<EmailSigninScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot password
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Forgot password - TODO')),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EmailForgotPasswordScreen(email: widget.email),
+                        ),
                       );
                     },
                     child: Text(

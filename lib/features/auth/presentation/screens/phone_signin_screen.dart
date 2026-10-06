@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/providers/auth_provider.dart';
 import '../../data/repositories/auth_repository.dart';
+import 'phone_forgot_password_screen.dart';
 
 class PhoneSigninScreen extends ConsumerStatefulWidget {
   final String phone;
@@ -250,9 +251,11 @@ class _PhoneSigninScreenState extends ConsumerState<PhoneSigninScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot password
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Forgot password - TODO')),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              PhoneForgotPasswordScreen(phone: widget.phone),
+                        ),
                       );
                     },
                     child: Text(

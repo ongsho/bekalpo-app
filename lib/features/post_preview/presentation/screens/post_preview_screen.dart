@@ -34,8 +34,6 @@ class PostPreviewScreen extends ConsumerStatefulWidget {
 }
 
 class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
-  bool _phoneRevealed = false;
-
   @override
   void initState() {
     super.initState();
@@ -160,20 +158,6 @@ class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
     }
   }
 
-  void _showFullscreenImageView(List<String> images) {
-    if (images.isEmpty) return;
-    if (!mounted) return;
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            _FullscreenImageViewer(images: images),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-      ),
-    );
-  }
-
   void _showRatingDialog(WidgetRef ref, Post post) {
     final postId = post.id;
     if (postId == null) return;
@@ -294,10 +278,8 @@ class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
           Container(
             color: Theme.of(context).colorScheme.surface,
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: PostGallery(
-              images: images,
-              onFullscreenTap: () => _showFullscreenImageView(images),
-            ),
+            // Fullscreen viewer is built into PostGallery (PostGalleryViewer)
+            child: PostGallery(images: images),
           ),
 
           const SizedBox(height: 8),
@@ -363,14 +345,6 @@ class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
 
           const SizedBox(height: 8),
 
-          // Related Posts Section
-          RelatedPostsSection(
-            categoryId: post.categoryId,
-            currentPostSlug: post.slug,
-          ),
-
-          const SizedBox(height: 8),
-
           // Seller Posts Section
           SellerPostsSection(
             userId: post.userId,
@@ -378,255 +352,15 @@ class _PostPreviewScreenState extends ConsumerState<PostPreviewScreen> {
             user: post.user,
           ),
 
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-}
+          const SizedBox(height: 8),
 
-class _FullscreenImageViewer extends StatefulWidget {
-  final List<String> images;
-
-  const _FullscreenImageViewer({required this.images});
-
-  @override
-  State<_FullscreenImageViewer> createState() => _FullscreenImageViewerState();
-}
-
-class _FullscreenImageViewerState extends State<_FullscreenImageViewer>
-    with SingleTickerProviderStateMixin {
-  final PageController _controller = PageController();
-  final TransformationController _transformationController =
-      TransformationController();
-  late AnimationController _animController;
-  Animation<Matrix4>? _zoomAnimation;
-  TapDownDetails? _doubleTapDetails;
-  int _index = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 200),
-        )..addListener(() {
-          _transformationController.value = _zoomAnimation!.value;
-        });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _transformationController.dispose();
-    _animController.dispose();
-    super.dispose();
-  }
-
-  void _handleDoubleTapDown(TapDownDetails details) {
-    _doubleTapDetails = details;
-    print('DEBUG: _handleDoubleTapDown called at ${details.localPosition}');
-  }
-
-  void _handleDoubleTap() {
-    print('DEBUG: _handleDoubleTap called');
-    final position = _doubleTapDetails?.localPosition;
-    if (position == null) {
-      print('DEBUG: position is null, returning');
-      return;
-    }
-
-    final currentScale = _transformationController.value.getMaxScaleOnAxis();
-    print('DEBUG: currentScale = $currentScale');
-    Matrix4 endMatrix;
-
-    if (currentScale > 1.0) {
-      // zoomed in -> zoom out
-      endMatrix = Matrix4.identity();
-      print('DEBUG: zooming out');
-    } else {
-      // zoom in centered on tap position
-      const targetScale = 2.5;
-      endMatrix = Matrix4.identity()
-        ..translate(
-          -position.dx * (targetScale - 1),
-          -position.dy * (targetScale - 1),
-        )
-        ..scale(targetScale);
-      print('DEBUG: zooming in to $targetScale at position $position');
-    }
-
-    _zoomAnimation = Matrix4Tween(
-      begin: _transformationController.value,
-      end: endMatrix,
-    ).animate(CurveTween(curve: Curves.easeOut).animate(_animController));
-    _animController.forward(from: 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final images = widget.images;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          '${_index + 1} / ${images.length}',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                PageView.builder(
-                  controller: _controller,
-                  itemCount: images.length,
-                  onPageChanged: (i) {
-                    setState(() => _index = i);
-                    // Reset zoom when page changes
-                    _transformationController.value = Matrix4.identity();
-                    print('DEBUG: Page changed to $i, zoom reset');
-                  },
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onDoubleTapDown: _handleDoubleTapDown,
-                      onDoubleTap: _handleDoubleTap,
-                      child: InteractiveViewer(
-                        transformationController: _transformationController,
-                        minScale: 1.0,
-                        maxScale: 4.0,
-                        child: Center(
-                          child: Image.network(
-                            images[index],
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => Center(
-                              child: Icon(
-                                Icons.broken_image_outlined,
-                                size: 64,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                            progress.expectedTotalBytes!
-                                      : null,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                if (images.length > 1) ...[
-                  Positioned(
-                    left: 16,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        color: Colors.white,
-                        iconSize: 48,
-                        onPressed: () {
-                          if (_index > 0) {
-                            _controller.previousPage(
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        color: Colors.white,
-                        iconSize: 48,
-                        onPressed: () {
-                          if (_index < images.length - 1) {
-                            _controller.nextPage(
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOut,
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          // Related Posts Section
+          RelatedPostsSection(
+            categoryId: post.categoryId,
+            currentPostSlug: post.slug,
           ),
-          if (images.length > 1)
-            Container(
-              color: Colors.black,
-              padding: const EdgeInsets.all(12),
-              child: SizedBox(
-                height: 60,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: images.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final active = index == _index;
-                    return GestureDetector(
-                      onTap: () {
-                        _controller.animateToPage(
-                          index,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                        );
-                      },
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: active ? Colors.white : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.network(
-                            images[index],
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                Container(color: Colors.grey.shade800),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
+
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -677,66 +411,76 @@ class _SellerFloatingNavState extends State<_SellerFloatingNav> {
       child: Row(
         children: [
           // Left side: Profile info
-          GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/seller-profile', arguments: user);
-            },
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: AppColors.brand500,
-                  backgroundImage: avatar != null && avatar.isNotEmpty
-                      ? CachedNetworkImageProvider(avatar)
-                      : null,
-                  child: (avatar == null || avatar.isEmpty)
-                      ? Text(
-                          (name)[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    if (widget.postsCount != null) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.list_alt,
-                            size: 10,
-                            color: AppColors.brand500,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${widget.postsCount} Posts',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.brand500,
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  '/seller-profile',
+                  arguments: user,
+                );
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.brand500,
+                    backgroundImage: avatar != null && avatar.isNotEmpty
+                        ? CachedNetworkImageProvider(avatar)
+                        : null,
+                    child: (avatar == null || avatar.isEmpty)
+                        ? Text(
+                            (name)[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        if (widget.postsCount != null) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.list_alt,
+                                size: 10,
+                                color: AppColors.brand500,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${widget.postsCount} Posts',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.brand500,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
-                  ],
-                ),
-              ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const Spacer(),

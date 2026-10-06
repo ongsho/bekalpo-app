@@ -636,22 +636,7 @@ class _TopBar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        InkWell(
-          onTap: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.maybePop(context);
-            }
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: Icon(
-              Icons.arrow_back_ios_new,
-              size: 18,
-              color: Colors.white,
-            ),
-          ),
-        ),
+        const SizedBox(width: 24),
         Text(
           title,
           style: const TextStyle(
@@ -660,14 +645,7 @@ class _TopBar extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: Icon(Icons.settings_outlined, size: 20, color: Colors.white),
-          ),
-        ),
+        const SizedBox(width: 24),
       ],
     );
   }
